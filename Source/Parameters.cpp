@@ -1,6 +1,7 @@
 #include "Parameters.h"
 #include "SampleBank.h"
 #include "ReverbEngine.h"
+#include "ScaleEngine.h"
 
 namespace
 {
@@ -140,6 +141,34 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
 
     layout.add (makeParam (ParamIDs::width, "Width",
                            { 0.0f, 2.0f }, 1.2f, percent()));
+
+    // --- Scale & Tuning -------------------------------------------------------
+    layout.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { ParamIDs::scaleRoot, 1 },
+                                                              "Root", ScaleEngine::rootNames(),
+                                                              ScaleEngine::defaultRoot));
+
+    layout.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { ParamIDs::scaleType, 1 },
+                                                              "Scale", ScaleEngine::scaleNames(),
+                                                              ScaleEngine::defaultScale));
+
+    layout.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { ParamIDs::scaleMapping, 1 },
+                                                              "Mapping", ScaleEngine::mappingNames(),
+                                                              (int) ScaleEngine::nearest));
+
+    layout.add (std::make_unique<juce::AudioParameterInt> (juce::ParameterID { ParamIDs::octave, 1 },
+                                                           "Octave", -2, 2, 0,
+                                                           juce::AudioParameterIntAttributes().withStringFromValueFunction ([] (int v, int)
+                                                           {
+                                                               return v > 0 ? "+" + juce::String (v) : juce::String (v);
+                                                           })));
+
+    layout.add (makeParam (ParamIDs::fineTune, "Fine Tune",
+                           { -50.0f, 50.0f }, 0.0f,
+                           Attributes().withStringFromValueFunction ([] (float v, int)
+                           {
+                               const int cents = juce::roundToInt (v);
+                               return (cents > 0 ? "+" : "") + juce::String (cents) + " ct";
+                           })));
 
     // --- Saída ----------------------------------------------------------------
     layout.add (makeParam (ParamIDs::volume, "Volume",

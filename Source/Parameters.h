@@ -38,6 +38,13 @@ namespace ParamIDs
     inline constexpr const char* motionRate    = "motionRate";
     inline constexpr const char* width         = "width";
 
+    // Scale & Tuning
+    inline constexpr const char* scaleRoot     = "scaleRoot";
+    inline constexpr const char* scaleType     = "scaleType";
+    inline constexpr const char* scaleMapping  = "scaleMapping";
+    inline constexpr const char* octave        = "octave";
+    inline constexpr const char* fineTune      = "fineTune";
+
     // Saída
     inline constexpr const char* volume        = "volume";
 }

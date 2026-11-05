@@ -7,6 +7,7 @@
 #include "AmbienceEngine.h"
 #include "SampleBank.h"
 #include "MotionEngine.h"
+#include "ScaleEngine.h"
 
 // ==============================================================================
 //  PluginProcessor
@@ -52,6 +53,7 @@ public:
 private:
     SampleBank sampleBank;
     juce::Synthesiser synth;
+    ScaleEngine scaleEngine;
     MotionEngine motion;
     AmbienceEngine ambience;
     juce::SmoothedValue<float> outputGain;
@@ -70,6 +72,10 @@ private:
     std::atomic<float>* motionDepth   = nullptr;
     std::atomic<float>* motionRate    = nullptr;
     std::atomic<float>* width         = nullptr;
+    std::atomic<float>* scaleRoot     = nullptr;
+    std::atomic<float>* scaleType     = nullptr;
+    std::atomic<float>* scaleMapping  = nullptr;
+    std::atomic<float>* octave        = nullptr;
 
     double currentBpm = 120.0;
 

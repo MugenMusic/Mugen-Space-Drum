@@ -1,5 +1,15 @@
 # Changelog — Mugen Space Drum
 
+## v0.5.0 — Fase 5: Musical System
+
+- Novo **Scale Engine**: as notas tocadas passam a pertencer sempre à escala escolhida.
+- 11 escalas: Chromatic (desligado), Celtic Minor, Kurd, Integral, Pygmy, Hijaz, Aegean, Akebono, Major Pentatonic, Minor Pentatonic, Major.
+- **Root**: nota raiz de C a B (por defeito D, como muitos handpans).
+- **Mapping**: *Nearest* (cada tecla toca a nota da escala mais próxima) ou *White Keys* (as teclas brancas tocam a escala nota a nota, Dó central = raiz).
+- **Octave** (−2 a +2) e **Tune** (afinação fina ±50 cêntimos; ex. −32 ct ≈ A=432 Hz).
+- O teclado no ecrã marca as notas da escala (violeta) e a nota raiz (azul).
+- O Note Off desliga sempre a nota certa, mesmo que a escala mude com uma tecla premida.
+
 ## v0.4.0 — Fase 4: Ambience & Motion
 
 - **Novo reverb próprio** (rede de 8 linhas com difusão, modulação e amortecimento) com 4 tipos: **Room, Hall, Cathedral, Deep Space** (até ~25 s de cauda).

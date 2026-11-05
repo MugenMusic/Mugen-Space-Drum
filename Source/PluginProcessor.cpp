@@ -12,6 +12,7 @@ MugenSpaceDrumProcessor::MugenSpaceDrumProcessor()
     voiceParams.resonance  = parameters.getRawParameterValue (ParamIDs::resonance);
     voiceParams.sampleType = parameters.getRawParameterValue (ParamIDs::sampleType);
     voiceParams.blend      = parameters.getRawParameterValue (ParamIDs::blend);
+    voiceParams.fineTune   = parameters.getRawParameterValue (ParamIDs::fineTune);
     voiceParams.sampleBank = &sampleBank;
 
     for (int i = 0; i < maxVoices; ++i)
@@ -33,6 +34,10 @@ MugenSpaceDrumProcessor::MugenSpaceDrumProcessor()
     motionDepth   = parameters.getRawParameterValue (ParamIDs::motionDepth);
     motionRate    = parameters.getRawParameterValue (ParamIDs::motionRate);
     width         = parameters.getRawParameterValue (ParamIDs::width);
+    scaleRoot     = parameters.getRawParameterValue (ParamIDs::scaleRoot);
+    scaleType     = parameters.getRawParameterValue (ParamIDs::scaleType);
+    scaleMapping  = parameters.getRawParameterValue (ParamIDs::scaleMapping);
+    octave        = parameters.getRawParameterValue (ParamIDs::octave);
 }
 
 void MugenSpaceDrumProcessor::prepareToPlay (double sampleRate, int)
@@ -46,6 +51,7 @@ void MugenSpaceDrumProcessor::prepareToPlay (double sampleRate, int)
     }
 
     synth.setCurrentPlaybackSampleRate (sampleRate);
+    scaleEngine.prepare();
     motion.prepare (sampleRate);
     ambience.prepare (sampleRate);
     keyboardState.reset();
@@ -74,6 +80,13 @@ void MugenSpaceDrumProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
     // Junta as notas tocadas no teclado do ecrã às notas vindas do DAW.
     keyboardState.processNextMidiBuffer (midiMessages, 0, numSamples, true);
+
+    // Notas -> notas da escala escolhida (Root, Scale, Mapping, Octave).
+    scaleEngine.process (midiMessages,
+                         juce::roundToInt (scaleRoot->load()),
+                         juce::roundToInt (scaleType->load()),
+                         juce::roundToInt (scaleMapping->load()),
+                         juce::roundToInt (octave->load()));
 
     for (const auto metadata : midiMessages)
     {

@@ -42,7 +42,8 @@ void SpaceDrumVoice::startNote (int midiNoteNumber, float velocity,
 
     const double vel         = juce::jlimit (0.0, 1.0, (double) velocity);
     const double brightness  = brightnessKnob * (0.55 + 0.45 * vel); // tocar mais forte = mais brilho
-    const double fundamental = juce::MidiMessage::getMidiNoteInHertz (midiNoteNumber);
+    const double tuneRatio   = std::pow (2.0, (parameters.fineTune != nullptr ? parameters.fineTune->load() : 0.0) / 1200.0);
+    const double fundamental = juce::MidiMessage::getMidiNoteInHertz (midiNoteNumber) * tuneRatio;
     const double twoPiOverSr = juce::MathConstants<double>::twoPi / sampleRate;
 
     const auto modeSet = ModalModel::forCharacter (character);
@@ -120,7 +121,7 @@ void SpaceDrumVoice::startNote (int midiNoteNumber, float velocity,
                         : nullptr;
     samplePosition = 0.0;
     if (currentSample != nullptr)
-        sampleIncrement = std::pow (2.0, (midiNoteNumber - currentSample->rootNote) / 12.0);
+        sampleIncrement = std::pow (2.0, (midiNoteNumber - currentSample->rootNote) / 12.0) * tuneRatio;
 
     if (synthMix < 0.001)
         for (auto& m : modes)

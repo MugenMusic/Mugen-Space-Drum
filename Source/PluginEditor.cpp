@@ -13,7 +13,7 @@ namespace
 MugenSpaceDrumEditor::MugenSpaceDrumEditor (MugenSpaceDrumProcessor& p)
     : AudioProcessorEditor (&p),
       processorRef (p),
-      keyboard (p.keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard)
+      keyboard (p.keyboardState, p)
 {
     setLookAndFeel (&lookAndFeel);
 
@@ -33,21 +33,27 @@ MugenSpaceDrumEditor::MugenSpaceDrumEditor (MugenSpaceDrumProcessor& p)
     setupKnob (knobs[12], ParamIDs::reverbMix,     "Mix");
     setupKnob (knobs[13], ParamIDs::reverbSize,    "Size");
     setupKnob (knobs[14], ParamIDs::shimmer,       "Shimmer");
+    setupKnob (knobs[15], ParamIDs::octave,        "Octave");
+    setupKnob (knobs[16], ParamIDs::fineTune,      "Tune");
 
     // Seletores e botões
     setupSelector (sampleSelector,     SampleBank::typeNames(),     ParamIDs::sampleType,    sampleAttachment);
     setupSelector (divisionSelector,   DelayDivisions::names(),     ParamIDs::delayDivision, divisionAttachment);
     setupSelector (reverbTypeSelector, ReverbEngine::typeNames(),   ParamIDs::reverbType,    reverbTypeAttachment);
+    setupSelector (rootSelector,       ScaleEngine::rootNames(),    ParamIDs::scaleRoot,     rootAttachment);
+    setupSelector (scaleSelector,      ScaleEngine::scaleNames(),   ParamIDs::scaleType,     scaleAttachment);
+    setupSelector (mappingSelector,    ScaleEngine::mappingNames(), ParamIDs::scaleMapping,  mappingAttachment);
     setupToggle (syncButton,   "SYNC",   ParamIDs::delaySync, syncAttachment);
     setupToggle (freezeButton, "FREEZE", ParamIDs::freeze,    freezeAttachment);
 
-    //            título        fila  1º knob  nº  largura  limites  topo esq.            topo dir.
-    sections[0] = { "INSTRUMENT", 0,   0,      4,  4.0f,    {},      nullptr,             nullptr };
-    sections[1] = { "SAMPLE",     0,   4,      1,  1.6f,    {},      &sampleSelector,     nullptr };
-    sections[2] = { "MOTION",     0,   5,      2,  2.0f,    {},      nullptr,             nullptr };
-    sections[3] = { "OUTPUT",     0,   7,      2,  2.0f,    {},      nullptr,             nullptr };
-    sections[4] = { "DELAY",      1,   9,      3,  3.0f,    {},      &syncButton,         &divisionSelector };
-    sections[5] = { "REVERB",     1,   12,     3,  3.0f,    {},      &reverbTypeSelector, &freezeButton };
+    //            título        fila  1º knob  nº  largura  limites  topo esq.            topo dir.          2ª linha
+    sections[0] = { "INSTRUMENT", 0,   0,      4,  4.0f,    {},      nullptr,             nullptr,           nullptr };
+    sections[1] = { "SAMPLE",     0,   4,      1,  1.6f,    {},      &sampleSelector,     nullptr,           nullptr };
+    sections[2] = { "MOTION",     0,   5,      2,  2.0f,    {},      nullptr,             nullptr,           nullptr };
+    sections[3] = { "OUTPUT",     0,   7,      2,  2.0f,    {},      nullptr,             nullptr,           nullptr };
+    sections[4] = { "DELAY",      1,   9,      3,  3.0f,    {},      &syncButton,         &divisionSelector, nullptr };
+    sections[5] = { "REVERB",     1,   12,     3,  3.0f,    {},      &reverbTypeSelector, &freezeButton,     nullptr };
+    sections[6] = { "SCALE",      1,   15,     2,  2.6f,    {},      &rootSelector,       &scaleSelector,    &mappingSelector };
 
     // Teclado no ecrã para testar o som com o rato
     keyboard.setAvailableRange (36, 96);
@@ -231,7 +237,13 @@ void MugenSpaceDrumEditor::layoutRow (int row, juce::Rectangle<int> area)
         if (section.toolLeft != nullptr || section.toolRight != nullptr)
         {
             auto tools = inner.removeFromTop (26);
-            if (section.toolLeft != nullptr && section.toolRight != nullptr)
+            if (section.toolLeft != nullptr && section.toolRight != nullptr && section.title == "SCALE")
+            {
+                // Raiz estreita, escala larga
+                section.toolLeft->setBounds (tools.removeFromLeft (tools.getWidth() / 3).reduced (4, 0));
+                section.toolRight->setBounds (tools.reduced (4, 0));
+            }
+            else if (section.toolLeft != nullptr && section.toolRight != nullptr)
             {
                 section.toolLeft->setBounds (tools.removeFromLeft (tools.getWidth() / 2).reduced (6, 0));
                 section.toolRight->setBounds (tools.reduced (6, 0));
@@ -241,6 +253,12 @@ void MugenSpaceDrumEditor::layoutRow (int row, juce::Rectangle<int> area)
                 section.toolLeft->setBounds (tools.reduced (6, 0));
             }
             inner.removeFromTop (6);
+
+            if (section.toolBelow != nullptr)
+            {
+                section.toolBelow->setBounds (inner.removeFromTop (26).reduced (4, 0));
+                inner.removeFromTop (6);
+            }
         }
 
         const int knobWidth = inner.getWidth() / section.numKnobs;
@@ -270,5 +288,46 @@ void MugenSpaceDrumEditor::timerCallback()
     divisionSelector.setEnabled (synced);
     divisionSelector.setAlpha (synced ? 1.0f : 0.45f);
 
+    // Quando a escala muda, redesenha as marcas do teclado.
+    const int signature = rootSelector.getSelectedItemIndex() * 1000 + scaleSelector.getSelectedItemIndex();
+    if (signature != lastScaleSignature)
+    {
+        lastScaleSignature = signature;
+        keyboard.repaint();
+    }
+
     repaint (ledBounds.expanded (8));
+}
+
+// ------------------------------------------------------------------------------
+//  Teclado com as notas da escala marcadas
+// ------------------------------------------------------------------------------
+void MugenSpaceDrumEditor::ScaleKeyboard::drawScaleMark (int note, juce::Graphics& g, juce::Rectangle<float> area)
+{
+    const int root  = juce::roundToInt (processor.parameters.getRawParameterValue (ParamIDs::scaleRoot)->load());
+    const int scale = juce::roundToInt (processor.parameters.getRawParameterValue (ParamIDs::scaleType)->load());
+
+    if (scale == 0 || ! ScaleEngine::isInScale (note, root, scale))   // Chromatic: sem marcas
+        return;
+
+    const bool isRoot = ((note - root) % 12 + 12) % 12 == 0;
+    const float size = juce::jmin (area.getWidth() * 0.45f, 8.0f);
+    const auto dot = juce::Rectangle<float> (size, size).withCentre ({ area.getCentreX(), area.getBottom() - size - 4.0f });
+
+    g.setColour (isRoot ? MugenColours::blue : MugenColours::violet);
+    g.fillEllipse (dot);
+}
+
+void MugenSpaceDrumEditor::ScaleKeyboard::drawWhiteNote (int note, juce::Graphics& g, juce::Rectangle<float> area,
+                                                         bool isDown, bool isOver, juce::Colour lineColour, juce::Colour textColour)
+{
+    juce::MidiKeyboardComponent::drawWhiteNote (note, g, area, isDown, isOver, lineColour, textColour);
+    drawScaleMark (note, g, area);
+}
+
+void MugenSpaceDrumEditor::ScaleKeyboard::drawBlackNote (int note, juce::Graphics& g, juce::Rectangle<float> area,
+                                                         bool isDown, bool isOver, juce::Colour noteFillColour)
+{
+    juce::MidiKeyboardComponent::drawBlackNote (note, g, area, isDown, isOver, noteFillColour);
+    drawScaleMark (note, g, area);
 }

@@ -37,6 +37,7 @@ struct VoiceParameters
     std::atomic<float>* resonance  = nullptr;
     std::atomic<float>* sampleType = nullptr;
     std::atomic<float>* blend      = nullptr;
+    std::atomic<float>* fineTune   = nullptr;   // cêntimos (-50..+50)
     const SampleBank*   sampleBank = nullptr;
 };
 
