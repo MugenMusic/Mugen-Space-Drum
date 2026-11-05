@@ -10,6 +10,9 @@ MugenSpaceDrumProcessor::MugenSpaceDrumProcessor()
     voiceParams.brightness = parameters.getRawParameterValue (ParamIDs::brightness);
     voiceParams.decay      = parameters.getRawParameterValue (ParamIDs::decay);
     voiceParams.resonance  = parameters.getRawParameterValue (ParamIDs::resonance);
+    voiceParams.sampleType = parameters.getRawParameterValue (ParamIDs::sampleType);
+    voiceParams.blend      = parameters.getRawParameterValue (ParamIDs::blend);
+    voiceParams.sampleBank = &sampleBank;
 
     for (int i = 0; i < maxVoices; ++i)
         synth.addVoice (new SpaceDrumVoice (voiceParams));
@@ -26,6 +29,14 @@ MugenSpaceDrumProcessor::MugenSpaceDrumProcessor()
 
 void MugenSpaceDrumProcessor::prepareToPlay (double sampleRate, int)
 {
+    // Os samples orgânicos são "gravados" aqui, fora da thread de áudio,
+    // e só quando a frequência de amostragem muda.
+    if (! sampleBank.isReadyFor (sampleRate))
+    {
+        synth.allNotesOff (0, false);
+        sampleBank.generate (sampleRate);
+    }
+
     synth.setCurrentPlaybackSampleRate (sampleRate);
     ambience.prepare (sampleRate);
     keyboardState.reset();

@@ -4,9 +4,10 @@
 #include <array>
 #include <atomic>
 #include "ModalModel.h"
+#include "SampleBank.h"
 
 // ==============================================================================
-//  Voice Engine + Modal Synth Engine
+//  Voice Engine (Hybrid): Modal Synth Engine + Sample Engine
 //
 //  Cada voz é um pequeno corpo metálico feito por síntese modal: 10 modos de
 //  vibração, cada um com afinação, volume e duração próprios.
@@ -17,6 +18,10 @@
 //  - Resonance  : cada modo ganha um "gémeo" ligeiramente desafinado
 //                 (batimento lento e etéreo) e os agudos duram mais.
 //  - Decay      : duração geral das notas.
+//
+//  - Sample / Blend : mistura o motor modal com um sample orgânico gerado
+//                 pelo próprio plugin (ver SampleBank.h). Blend 0 = só síntese,
+//                 Blend 1 = só sample.
 //
 //  Detalhes orgânicos: ligeira descida de afinação no início de cada toque
 //  (como num handpan real) e pequenas variações aleatórias em cada toque,
@@ -30,6 +35,9 @@ struct VoiceParameters
     std::atomic<float>* brightness = nullptr;
     std::atomic<float>* decay      = nullptr;
     std::atomic<float>* resonance  = nullptr;
+    std::atomic<float>* sampleType = nullptr;
+    std::atomic<float>* blend      = nullptr;
+    const SampleBank*   sampleBank = nullptr;
 };
 
 class SpaceDrumSound : public juce::SynthesiserSound
@@ -103,11 +111,17 @@ private:
     };
 
     void updateGlide() noexcept;
+    double readSample() noexcept;
 
     VoiceParameters parameters;
     std::array<Mode, numModes> modes;
 
     juce::Random random;
+
+    // Sample orgânico desta nota
+    const SampleBank::Sample* currentSample = nullptr;
+    double samplePosition = 0.0, sampleIncrement = 1.0;
+    double synthMix = 1.0, sampleMix = 0.0;
 
     // Toque da baqueta (ruído filtrado muito curto)
     double malletLevel = 0.0, malletMultiplier = 0.0, malletFilterCoef = 0.0, malletState = 0.0;

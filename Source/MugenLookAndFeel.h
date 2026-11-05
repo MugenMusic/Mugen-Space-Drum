@@ -28,6 +28,15 @@ public:
         setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
         setColour (juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
         setColour (juce::Label::textColourId, MugenColours::textDim);
+
+        setColour (juce::ComboBox::backgroundColourId, MugenColours::knobBody);
+        setColour (juce::ComboBox::outlineColourId, MugenColours::panelOutline);
+        setColour (juce::ComboBox::textColourId, MugenColours::text);
+        setColour (juce::ComboBox::arrowColourId, MugenColours::blue);
+        setColour (juce::PopupMenu::backgroundColourId, MugenColours::knobBody);
+        setColour (juce::PopupMenu::textColourId, MugenColours::text);
+        setColour (juce::PopupMenu::highlightedBackgroundColourId, MugenColours::violet.withAlpha (0.5f));
+        setColour (juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
     }
 
     void drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height,

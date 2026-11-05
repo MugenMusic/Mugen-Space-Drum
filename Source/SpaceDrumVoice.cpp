@@ -37,6 +37,8 @@ void SpaceDrumVoice::startNote (int midiNoteNumber, float velocity,
     const double brightnessKnob = parameters.brightness->load();
     const double decayKnob      = parameters.decay->load();
     const double resonance      = parameters.resonance->load();
+    const double blend          = parameters.blend->load();
+    const int    sampleType     = juce::roundToInt (parameters.sampleType->load());
 
     const double vel         = juce::jlimit (0.0, 1.0, (double) velocity);
     const double brightness  = brightnessKnob * (0.55 + 0.45 * vel); // tocar mais forte = mais brilho
@@ -108,6 +110,22 @@ void SpaceDrumVoice::startNote (int midiNoteNumber, float velocity,
     toneFilterCoef  = onePoleCoef (juce::jmin (sampleRate * 0.45, 1500.0 + brightness * 11000.0 + fundamental * 2.0), sampleRate);
     toneFilterState = 0.0;
 
+    // --- Sample orgânico -------------------------------------------------------------
+    // Mistura de potência constante: o volume total mantém-se ao rodar o Blend.
+    synthMix  = std::cos (blend * juce::MathConstants<double>::halfPi);
+    sampleMix = std::sin (blend * juce::MathConstants<double>::halfPi) * 1.8;
+
+    currentSample = (parameters.sampleBank != nullptr && sampleMix > 0.001)
+                        ? parameters.sampleBank->find (sampleType, midiNoteNumber)
+                        : nullptr;
+    samplePosition = 0.0;
+    if (currentSample != nullptr)
+        sampleIncrement = std::pow (2.0, (midiNoteNumber - currentSample->rootNote) / 12.0);
+
+    if (synthMix < 0.001)
+        for (auto& m : modes)
+            m.envelope = 0.0;
+
     outputGain = std::pow (vel, 1.4) * 0.15 / (1.0 + 0.35 * resonance);
 
     // Pequena abertura estéreo: graves ligeiramente à esquerda, agudos à direita.
@@ -129,6 +147,33 @@ void SpaceDrumVoice::updateGlide() noexcept
         m.main.setAngularStep (m.mainStep * factor);
         m.twin.setAngularStep (m.twinStep * factor);
     }
+}
+
+double SpaceDrumVoice::readSample() noexcept
+{
+    // Leitura com interpolação cúbica (som limpo quando o sample é afinado).
+    const auto& data = currentSample->data;
+    const int size = (int) data.size();
+    const int i1 = (int) samplePosition;
+
+    if (i1 >= size - 2)
+    {
+        currentSample = nullptr;
+        return 0.0;
+    }
+
+    const double t  = samplePosition - i1;
+    const double y0 = i1 > 0 ? data[(size_t) (i1 - 1)] : data[(size_t) i1];
+    const double y1 = data[(size_t) i1];
+    const double y2 = data[(size_t) (i1 + 1)];
+    const double y3 = data[(size_t) (i1 + 2)];
+
+    const double c1 = 0.5 * (y2 - y0);
+    const double c2 = y0 - 2.5 * y1 + 2.0 * y2 - 0.5 * y3;
+    const double c3 = 0.5 * (y3 - y0) + 1.5 * (y1 - y2);
+
+    samplePosition += sampleIncrement * (1.0 + glideAmount);
+    return ((c3 * t + c2) * t + c1) * t + y1;
 }
 
 void SpaceDrumVoice::stopNote (float, bool allowTailOff)
@@ -187,6 +232,11 @@ void SpaceDrumVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer,
             ++attackPosition;
         }
 
+        sample *= synthMix;
+
+        if (currentSample != nullptr)
+            sample += readSample() * sampleMix;
+
         toneFilterState += (sample - toneFilterState) * toneFilterCoef;
         const float out = (float) (toneFilterState * outputGain);
 
@@ -196,7 +246,7 @@ void SpaceDrumVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer,
     }
 
     // Manutenção dos osciladores e verificação de silêncio.
-    bool stillSounding = malletLevel > silenceThreshold;
+    bool stillSounding = malletLevel > silenceThreshold || currentSample != nullptr;
 
     for (auto& m : modes)
     {

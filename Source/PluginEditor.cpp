@@ -2,7 +2,7 @@
 
 namespace
 {
-    constexpr int editorWidth  = 940;
+    constexpr int editorWidth  = 1040;
     constexpr int editorHeight = 560;
 }
 
@@ -14,21 +14,30 @@ MugenSpaceDrumEditor::MugenSpaceDrumEditor (MugenSpaceDrumProcessor& p)
     setLookAndFeel (&lookAndFeel);
 
     // Ordem dos knobs no ecrã
-    setupKnob (knobs[0], ParamIDs::character,     "Character");
-    setupKnob (knobs[1], ParamIDs::brightness,    "Brightness");
-    setupKnob (knobs[2], ParamIDs::decay,         "Decay");
-    setupKnob (knobs[3], ParamIDs::resonance,     "Resonance");
-    setupKnob (knobs[4], ParamIDs::delayMix,      "Mix");
-    setupKnob (knobs[5], ParamIDs::delayTime,     "Time");
-    setupKnob (knobs[6], ParamIDs::delayFeedback, "Feedback");
-    setupKnob (knobs[7], ParamIDs::reverbMix,     "Mix");
-    setupKnob (knobs[8], ParamIDs::reverbSize,    "Size");
-    setupKnob (knobs[9], ParamIDs::volume,        "Volume");
+    setupKnob (knobs[0],  ParamIDs::character,     "Character");
+    setupKnob (knobs[1],  ParamIDs::brightness,    "Brightness");
+    setupKnob (knobs[2],  ParamIDs::decay,         "Decay");
+    setupKnob (knobs[3],  ParamIDs::resonance,     "Resonance");
+    setupKnob (knobs[4],  ParamIDs::blend,         "Blend");
+    setupKnob (knobs[5],  ParamIDs::delayMix,      "Mix");
+    setupKnob (knobs[6],  ParamIDs::delayTime,     "Time");
+    setupKnob (knobs[7],  ParamIDs::delayFeedback, "Feedback");
+    setupKnob (knobs[8],  ParamIDs::reverbMix,     "Mix");
+    setupKnob (knobs[9],  ParamIDs::reverbSize,    "Size");
+    setupKnob (knobs[10], ParamIDs::volume,        "Volume");
 
-    sections[0] = { "INSTRUMENT", 0, 4, {} };
-    sections[1] = { "DELAY",      4, 3, {} };
-    sections[2] = { "REVERB",     7, 2, {} };
-    sections[3] = { "OUTPUT",     9, 1, {} };
+    sections[0] = { "INSTRUMENT", 0,  4, 4.0f, {} };
+    sections[1] = { "SAMPLE",     4,  1, 1.6f, {} };
+    sections[2] = { "DELAY",      5,  3, 3.0f, {} };
+    sections[3] = { "REVERB",     8,  2, 2.0f, {} };
+    sections[4] = { "OUTPUT",     10, 1, 1.0f, {} };
+
+    // Escolha do sample orgânico (Hand / Felt / Shell / Air)
+    sampleSelector.addItemList (SampleBank::typeNames(), 1);
+    sampleSelector.setJustificationType (juce::Justification::centred);
+    addAndMakeVisible (sampleSelector);
+    sampleSelectorAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (
+        processorRef.parameters, ParamIDs::sampleType, sampleSelector);
 
     // Teclado no ecrã para testar o som com o rato
     keyboard.setAvailableRange (36, 96);
@@ -152,20 +161,27 @@ void MugenSpaceDrumEditor::resized()
 
     area.removeFromBottom (34);
 
-    // Painéis: larguras proporcionais ao número de knobs
+    // Painéis: larguras proporcionais
     const int gap = 12;
-    const int totalKnobs = numKnobs;
+    float totalUnits = 0.0f;
+    for (const auto& section : sections)
+        totalUnits += section.units;
+
     const int usableWidth = area.getWidth() - gap * ((int) sections.size() - 1);
 
     for (size_t s = 0; s < sections.size(); ++s)
     {
         auto& section = sections[s];
         const int width = (s == sections.size() - 1) ? area.getWidth()
-                                                     : usableWidth * section.numKnobs / totalKnobs;
+                                                     : juce::roundToInt ((float) usableWidth * section.units / totalUnits);
         section.bounds = area.removeFromLeft (width);
         area.removeFromLeft (gap);
 
         auto inner = section.bounds.reduced (6).withTrimmedTop (30);
+
+        if (section.title == "SAMPLE")
+            sampleSelector.setBounds (inner.removeFromTop (26).reduced (6, 0));
+
         const int knobWidth = inner.getWidth() / section.numKnobs;
 
         for (int k = 0; k < section.numKnobs; ++k)

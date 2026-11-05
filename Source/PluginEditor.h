@@ -32,6 +32,7 @@ private:
         juce::String title;
         int firstKnob = 0;
         int numKnobs  = 0;
+        float units   = 1.0f;   // largura relativa do painel
         juce::Rectangle<int> bounds;
     };
 
@@ -40,9 +41,12 @@ private:
     MugenSpaceDrumProcessor& processorRef;
     MugenLookAndFeel lookAndFeel;
 
-    static constexpr int numKnobs = 10;
+    static constexpr int numKnobs = 11;
     std::array<Knob, numKnobs> knobs;
-    std::array<Section, 4> sections;
+    std::array<Section, 5> sections;
+
+    juce::ComboBox sampleSelector;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> sampleSelectorAttachment;
 
     juce::MidiKeyboardComponent keyboard;
 

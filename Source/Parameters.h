@@ -15,6 +15,10 @@ namespace ParamIDs
     inline constexpr const char* decay         = "decay";
     inline constexpr const char* resonance     = "resonance";
 
+    // Sample Engine (samples orgânicos gerados pelo plugin)
+    inline constexpr const char* sampleType    = "sampleType";
+    inline constexpr const char* blend         = "blend";
+
     // Delay
     inline constexpr const char* delayMix      = "delayMix";
     inline constexpr const char* delayTime     = "delayTime";

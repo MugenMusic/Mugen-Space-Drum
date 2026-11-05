@@ -5,6 +5,7 @@
 #include "Parameters.h"
 #include "SpaceDrumVoice.h"
 #include "AmbienceEngine.h"
+#include "SampleBank.h"
 
 // ==============================================================================
 //  PluginProcessor
@@ -48,6 +49,7 @@ public:
     std::atomic<bool> midiActivity { false };  // acende a luz MIDI na interface
 
 private:
+    SampleBank sampleBank;
     juce::Synthesiser synth;
     AmbienceEngine ambience;
     juce::SmoothedValue<float> outputGain;

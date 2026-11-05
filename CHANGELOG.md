@@ -1,5 +1,14 @@
 # Changelog — Mugen Space Drum
 
+## v0.3.0 — Fase 3: Hybrid Engine
+
+- Novo **Sample Engine**: samples orgânicos gerados pelo próprio plugin (sem gravações de terceiros).
+- Quatro samples: **Hand** (mão), **Felt** (feltro), **Shell** (casca metálica rica), **Air** (sopro etéreo).
+- Cada sample é "gravado" em 5 notas de referência (C1 a C5) e afinado para cada nota.
+- Novo knob **Blend**: mistura síntese modal ↔ sample (volume constante ao rodar).
+- Nova secção **SAMPLE** na interface, com seletor de sample.
+- A descida de afinação do ataque também se aplica ao sample.
+
 ## v0.2.0 — Fase 2: Modal Synthesis
 
 - Motor modal com 10 modos de vibração por nota (antes 6).

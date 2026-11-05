@@ -1,4 +1,5 @@
 #include "Parameters.h"
+#include "SampleBank.h"
 
 namespace
 {
@@ -72,6 +73,19 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
 
     layout.add (makeParam (ParamIDs::resonance, "Resonance",
                            { 0.0f, 1.0f }, 0.55f, percent()));
+
+    // --- Sample Engine --------------------------------------------------------
+    layout.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { ParamIDs::sampleType, 1 },
+                                                              "Sample", SampleBank::typeNames(),
+                                                              (int) SampleBank::shell));
+
+    layout.add (makeParam (ParamIDs::blend, "Blend",
+                           { 0.0f, 1.0f }, 0.35f,
+                           Attributes().withStringFromValueFunction ([] (float v, int)
+                           {
+                               const int samplePercent = juce::roundToInt (v * 100.0f);
+                               return juce::String (100 - samplePercent) + " / " + juce::String (samplePercent);
+                           })));
 
     // --- Delay ----------------------------------------------------------------
     layout.add (makeParam (ParamIDs::delayMix, "Delay Mix",
