@@ -2,7 +2,7 @@
 
 Instrumento virtual VST3 inspirado nos Space Drums e handpans: um som etéreo, hipnótico e suave, feito por síntese modal, com delay e reverb atmosféricos.
 
-**Made by Mugen** · versão 0.5.0
+**Made by Mugen** · versão 0.6.0
 
 ## Controlos
 
@@ -23,6 +23,11 @@ Instrumento virtual VST3 inspirado nos Space Drums e handpans: um som etéreo, h
 | Scale | Root / Scale / Mapping | Escala musical (11 escalas de handpan e pentatónicas) e forma de a tocar |
 | Scale | Octave / Tune | Oitava e afinação fina |
 | Output | Width / Volume | Largura estéreo e volume final |
+
+## Presets
+
+16 presets de fábrica (Celestial, Organic, Rhythmic, Atmosphere, Crystal). Os presets guardados com **SAVE** ficam em
+`~/Library/Audio/Presets/Mugen/Mugen Space Drum/` e aparecem na categoria **User**.
 
 ## Compilação
 

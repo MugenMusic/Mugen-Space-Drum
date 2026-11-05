@@ -1,5 +1,20 @@
 # Changelog — Mugen Space Drum
 
+## v0.6.0 — Fase 6: Presets & UI
+
+- **Nova interface** ao estilo de um sintetizador profissional, com a identidade Mugen:
+  cabeçalho com barra de presets, 5 separadores (Instrument · Resonance · Ambience · Motion · Scale & Tuning),
+  palco central com o **orbe animado** e **browser de presets** à direita.
+- **Orbe animado**: anéis de luz, flor de lótus, partículas e onda de energia; pulsa a cada nota,
+  brilha com o som, a cor segue o Character e a rotação segue o Motion Rate.
+- **16 presets de fábrica** em 5 categorias: Celestial, Organic, Rhythmic, Atmosphere, Crystal
+  (inclui "Celestial Flow", o preset inicial).
+- **Presets do utilizador**: botão SAVE (ficheiros .msdpreset em ~/Library/Audio/Presets/Mugen/Mugen Space Drum).
+- Navegação com ◀ ▶, menu por categorias ao clicar no nome, e lista no browser.
+- O nome do preset e o separador aberto ficam guardados no projeto do DAW.
+- Os presets de fábrica aparecem também como "programas" no DAW.
+- **Janela redimensionável** (60 % a 150 %), sempre com as mesmas proporções.
+
 ## v0.5.0 — Fase 5: Musical System
 
 - Novo **Scale Engine**: as notas tocadas passam a pertencer sempre à escala escolhida.
