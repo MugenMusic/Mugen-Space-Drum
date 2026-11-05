@@ -30,9 +30,10 @@ jobs:
           file "$VST3_PATH/Contents/MacOS/"*
           codesign --force --deep --sign - "$VST3_PATH"
           codesign --verify --deep --strict --verbose=2 "$VST3_PATH"
-          mkdir -p dist
-          ditto -c -k --keepParent "$VST3_PATH" "dist/Mugen-Space-Drum-v0.1.0-macOS-AppleSilicon.zip"
-
+                       VERSION=$(grep -m1 -oE 'project\(MugenSpaceDrum VERSION [0-9.]+' CMakeLists.txt | awk '{print $3}')
+             echo "Versão: $VERSION"
+             mkdir -p dist
+             ditto -c -k --keepParent "$VST3_PATH" "dist/Mugen-Space-Drum-v${VERSION}-macOS-AppleSilicon.zip"
       - name: Disponibilizar para download
         uses: actions/upload-artifact@v4
         with:
