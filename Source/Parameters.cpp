@@ -1,5 +1,6 @@
 #include "Parameters.h"
 #include "SampleBank.h"
+#include "ReverbEngine.h"
 
 namespace
 {
@@ -100,12 +101,45 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeParam (ParamIDs::delayFeedback, "Delay Feedback",
                            { 0.0f, 0.9f }, 0.45f, percent()));
 
+    layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { ParamIDs::delaySync, 1 },
+                                                            "Delay Sync", false));
+
+    layout.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { ParamIDs::delayDivision, 1 },
+                                                              "Delay Division", DelayDivisions::names(), 3));
+
     // --- Reverb ---------------------------------------------------------------
+    layout.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { ParamIDs::reverbType, 1 },
+                                                              "Reverb Type", ReverbEngine::typeNames(),
+                                                              (int) ReverbEngine::hall));
+
+    layout.add (makeParam (ParamIDs::shimmer, "Shimmer",
+                           { 0.0f, 1.0f }, 0.2f, percent()));
+
+    layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { ParamIDs::freeze, 1 },
+                                                            "Freeze", false));
+
     layout.add (makeParam (ParamIDs::reverbMix, "Reverb Mix",
                            { 0.0f, 1.0f }, 0.40f, percent()));
 
     layout.add (makeParam (ParamIDs::reverbSize, "Reverb Size",
                            { 0.0f, 1.0f }, 0.80f, percent()));
+
+    // --- Motion ---------------------------------------------------------------
+    layout.add (makeParam (ParamIDs::motionDepth, "Motion Depth",
+                           { 0.0f, 1.0f }, 0.3f, percent()));
+
+    {
+        juce::NormalisableRange<float> rateRange { 0.02f, 2.0f };
+        rateRange.setSkewForCentre (0.25f);
+        layout.add (makeParam (ParamIDs::motionRate, "Motion Rate", rateRange, 0.15f,
+                               Attributes().withStringFromValueFunction ([] (float v, int)
+                               {
+                                   return juce::String (v, 2) + " Hz";
+                               })));
+    }
+
+    layout.add (makeParam (ParamIDs::width, "Width",
+                           { 0.0f, 2.0f }, 1.2f, percent()));
 
     // --- Saída ----------------------------------------------------------------
     layout.add (makeParam (ParamIDs::volume, "Volume",

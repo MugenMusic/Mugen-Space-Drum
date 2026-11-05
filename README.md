@@ -2,7 +2,7 @@
 
 Instrumento virtual VST3 inspirado nos Space Drums e handpans: um som etéreo, hipnótico e suave, feito por síntese modal, com delay e reverb atmosféricos.
 
-**Made by Mugen** · versão 0.3.0
+**Made by Mugen** · versão 0.4.0
 
 ## Controlos
 
@@ -14,9 +14,13 @@ Instrumento virtual VST3 inspirado nos Space Drums e handpans: um som etéreo, h
 | Instrument | Resonance | Batimento suave e ressonância etérea dos harmónicos |
 | Sample | Hand / Felt / Shell / Air | Sample orgânico gerado pelo plugin |
 | Sample | Blend | Mistura entre síntese modal e sample |
+| Motion | Depth / Rate | Movimento lento e hipnótico (coro suave + esquerda/direita) |
 | Delay | Mix / Time / Feedback | Ecos ping-pong entre esquerda e direita |
-| Reverb | Mix / Size | Espaço atmosférico à volta do som |
-| Output | Volume | Volume final |
+| Delay | Sync + divisão | Delay no tempo do projeto (1/16 a 1/1) |
+| Reverb | Tipo | Room, Hall, Cathedral, Deep Space |
+| Reverb | Mix / Size / Shimmer | Espaço, tamanho e brilho celestial (uma oitava acima) |
+| Reverb | Freeze | Suspende a cauda no ar |
+| Output | Width / Volume | Largura estéreo e volume final |
 
 ## Compilação
 

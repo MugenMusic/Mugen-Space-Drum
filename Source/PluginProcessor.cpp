@@ -25,6 +25,14 @@ MugenSpaceDrumProcessor::MugenSpaceDrumProcessor()
     reverbMix     = parameters.getRawParameterValue (ParamIDs::reverbMix);
     reverbSize    = parameters.getRawParameterValue (ParamIDs::reverbSize);
     volume        = parameters.getRawParameterValue (ParamIDs::volume);
+    delaySync     = parameters.getRawParameterValue (ParamIDs::delaySync);
+    delayDivision = parameters.getRawParameterValue (ParamIDs::delayDivision);
+    reverbType    = parameters.getRawParameterValue (ParamIDs::reverbType);
+    shimmer       = parameters.getRawParameterValue (ParamIDs::shimmer);
+    freeze        = parameters.getRawParameterValue (ParamIDs::freeze);
+    motionDepth   = parameters.getRawParameterValue (ParamIDs::motionDepth);
+    motionRate    = parameters.getRawParameterValue (ParamIDs::motionRate);
+    width         = parameters.getRawParameterValue (ParamIDs::width);
 }
 
 void MugenSpaceDrumProcessor::prepareToPlay (double sampleRate, int)
@@ -38,6 +46,7 @@ void MugenSpaceDrumProcessor::prepareToPlay (double sampleRate, int)
     }
 
     synth.setCurrentPlaybackSampleRate (sampleRate);
+    motion.prepare (sampleRate);
     ambience.prepare (sampleRate);
     keyboardState.reset();
 
@@ -47,6 +56,7 @@ void MugenSpaceDrumProcessor::prepareToPlay (double sampleRate, int)
 
 void MugenSpaceDrumProcessor::releaseResources()
 {
+    motion.reset();
     ambience.reset();
 }
 
@@ -76,13 +86,43 @@ void MugenSpaceDrumProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
     synth.renderNextBlock (buffer, midiMessages, 0, numSamples);
 
+    // --- Motion (coro suave + movimento estéreo) -------------------------------
+    MotionEngine::Settings motionSettings;
+    motionSettings.depth  = motionDepth->load();
+    motionSettings.rateHz = motionRate->load();
+    motionSettings.width  = width->load();
+    motion.processMotion (buffer, motionSettings);
+
+    // --- Delay + Reverb ----------------------------------------------------------
+    // Tempo do projeto (BPM) para o delay sincronizado.
+    if (auto* host = getPlayHead())
+        if (auto position = host->getPosition())
+            if (auto bpm = position->getBpm())
+                if (*bpm > 20.0 && *bpm < 400.0)
+                    currentBpm = *bpm;
+
     AmbienceEngine::Settings settings;
     settings.delayMix      = delayMix->load();
-    settings.delayTimeMs   = delayTime->load();
     settings.delayFeedback = delayFeedback->load();
-    settings.reverbMix     = reverbMix->load();
-    settings.reverbSize    = reverbSize->load();
+
+    if (delaySync->load() > 0.5f)
+    {
+        const float beats = DelayDivisions::beats (juce::roundToInt (delayDivision->load()));
+        settings.delayTimeMs = juce::jmin (AmbienceEngine::maxDelayMs, (float) (60000.0 / currentBpm) * beats);
+    }
+    else
+    {
+        settings.delayTimeMs = delayTime->load();
+    }
+
+    settings.reverb.type    = juce::roundToInt (reverbType->load());
+    settings.reverb.size    = reverbSize->load();
+    settings.reverb.mix     = reverbMix->load();
+    settings.reverb.shimmer = shimmer->load();
+    settings.reverb.freeze  = freeze->load() > 0.5f;
     ambience.process (buffer, settings);
+
+    motion.processWidth (buffer, motionSettings);
 
     // Volume final + limitação suave (evita distorção quando muitas notas soam juntas).
     outputGain.setTargetValue (juce::Decibels::decibelsToGain (volume->load()));

@@ -15,7 +15,7 @@ if(APPLE AND NOT CMAKE_OSX_ARCHITECTURES)
 endif()
 set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Versão mínima do macOS")
 
-project(MugenSpaceDrum VERSION 0.3.0 LANGUAGES C CXX)
+project(MugenSpaceDrum VERSION 0.4.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -53,6 +53,8 @@ target_sources(MugenSpaceDrum PRIVATE
     Source/SpaceDrumVoice.cpp
     Source/AmbienceEngine.cpp
     Source/SampleBank.cpp
+    Source/ReverbEngine.cpp
+    Source/MotionEngine.cpp
 )
 
 target_compile_definitions(MugenSpaceDrum PUBLIC

@@ -4,9 +4,9 @@ void AmbienceEngine::prepare (double sampleRate)
 {
     currentSampleRate = sampleRate;
 
-    // Até 1,5 s de delay + margem. Toda a memória é reservada aqui,
-    // nunca durante o processamento de áudio.
-    const auto size = (size_t) (sampleRate * 2.0) + 4;
+    // Até 4 s de delay (uma nota inteira a 60 BPM) + margem. Toda a memória
+    // é reservada aqui, nunca durante o processamento de áudio.
+    const auto size = (size_t) (sampleRate * (maxDelayMs * 0.001 + 0.1)) + 4;
     delayLeft.assign (size, 0.0f);
     delayRight.assign (size, 0.0f);
 
@@ -16,8 +16,7 @@ void AmbienceEngine::prepare (double sampleRate)
     // Os ecos perdem agudos a cada repetição (som mais quente e sonhador).
     feedbackFilterCoef = (float) (1.0 - std::exp (-juce::MathConstants<double>::twoPi * 3800.0 / sampleRate));
 
-    reverb.setSampleRate (sampleRate);
-    reverbNeedsUpdate = true;
+    reverb.prepare (sampleRate);
 
     reset();
 }
@@ -83,30 +82,6 @@ void AmbienceEngine::processDelay (float* left, float* right, int numSamples, co
     }
 }
 
-void AmbienceEngine::updateReverb (const Settings& settings)
-{
-    juce::Reverb::Parameters p;
-    p.roomSize   = 0.55f + settings.reverbSize * 0.43f;
-    p.damping    = 0.30f + (1.0f - settings.reverbSize) * 0.30f;
-    p.wetLevel   = settings.reverbMix * 0.45f;
-    p.dryLevel   = 1.0f - settings.reverbMix * 0.40f;
-    p.width      = 1.0f;
-    p.freezeMode = 0.0f;
-
-    const bool changed = reverbNeedsUpdate
-                      || p.roomSize != lastReverbParameters.roomSize
-                      || p.damping  != lastReverbParameters.damping
-                      || p.wetLevel != lastReverbParameters.wetLevel
-                      || p.dryLevel != lastReverbParameters.dryLevel;
-
-    if (changed)
-    {
-        reverb.setParameters (p);
-        lastReverbParameters = p;
-        reverbNeedsUpdate = false;
-    }
-}
-
 void AmbienceEngine::process (juce::AudioBuffer<float>& buffer, const Settings& settings)
 {
     if (buffer.getNumChannels() < 2)
@@ -118,6 +93,5 @@ void AmbienceEngine::process (juce::AudioBuffer<float>& buffer, const Settings& 
 
     processDelay (left, right, numSamples, settings);
 
-    updateReverb (settings);
-    reverb.processStereo (left, right, numSamples);
+    reverb.process (left, right, numSamples, settings.reverb);
 }

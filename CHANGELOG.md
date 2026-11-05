@@ -1,5 +1,15 @@
 # Changelog — Mugen Space Drum
 
+## v0.4.0 — Fase 4: Ambience & Motion
+
+- **Novo reverb próprio** (rede de 8 linhas com difusão, modulação e amortecimento) com 4 tipos: **Room, Hall, Cathedral, Deep Space** (até ~25 s de cauda).
+- **Shimmer**: a cauda sobe uma oitava e volta a entrar no reverb (protegido para nunca descontrolar).
+- **Freeze**: a cauda fica suspensa no ar enquanto o botão estiver ligado.
+- **Delay sincronizado** com o BPM do DAW (botão SYNC + divisões 1/16 a 1/1, incluindo pontuadas e tercinas). Delay até 4 s.
+- Nova secção **MOTION**: Depth e Rate (coro suave + movimento lento esquerda/direita).
+- **Width**: largura estéreo de 0 % a 200 %.
+- Interface reorganizada em duas filas: INSTRUMENT · SAMPLE · MOTION · OUTPUT / DELAY · REVERB.
+
 ## v0.3.0 — Fase 3: Hybrid Engine
 
 - Novo **Sample Engine**: samples orgânicos gerados pelo próprio plugin (sem gravações de terceiros).

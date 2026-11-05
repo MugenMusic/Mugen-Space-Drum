@@ -3,7 +3,11 @@
 namespace
 {
     constexpr int editorWidth  = 1040;
-    constexpr int editorHeight = 560;
+    constexpr int editorHeight = 790;
+    constexpr int maxKnobSize  = 104;
+
+    // Índices dos knobs (para os ligar/desligar consoante o Sync)
+    constexpr int delayTimeKnob = 10;
 }
 
 MugenSpaceDrumEditor::MugenSpaceDrumEditor (MugenSpaceDrumProcessor& p)
@@ -19,25 +23,31 @@ MugenSpaceDrumEditor::MugenSpaceDrumEditor (MugenSpaceDrumProcessor& p)
     setupKnob (knobs[2],  ParamIDs::decay,         "Decay");
     setupKnob (knobs[3],  ParamIDs::resonance,     "Resonance");
     setupKnob (knobs[4],  ParamIDs::blend,         "Blend");
-    setupKnob (knobs[5],  ParamIDs::delayMix,      "Mix");
-    setupKnob (knobs[6],  ParamIDs::delayTime,     "Time");
-    setupKnob (knobs[7],  ParamIDs::delayFeedback, "Feedback");
-    setupKnob (knobs[8],  ParamIDs::reverbMix,     "Mix");
-    setupKnob (knobs[9],  ParamIDs::reverbSize,    "Size");
-    setupKnob (knobs[10], ParamIDs::volume,        "Volume");
+    setupKnob (knobs[5],  ParamIDs::motionDepth,   "Depth");
+    setupKnob (knobs[6],  ParamIDs::motionRate,    "Rate");
+    setupKnob (knobs[7],  ParamIDs::width,         "Width");
+    setupKnob (knobs[8],  ParamIDs::volume,        "Volume");
+    setupKnob (knobs[9],  ParamIDs::delayMix,      "Mix");
+    setupKnob (knobs[10], ParamIDs::delayTime,     "Time");
+    setupKnob (knobs[11], ParamIDs::delayFeedback, "Feedback");
+    setupKnob (knobs[12], ParamIDs::reverbMix,     "Mix");
+    setupKnob (knobs[13], ParamIDs::reverbSize,    "Size");
+    setupKnob (knobs[14], ParamIDs::shimmer,       "Shimmer");
 
-    sections[0] = { "INSTRUMENT", 0,  4, 4.0f, {} };
-    sections[1] = { "SAMPLE",     4,  1, 1.6f, {} };
-    sections[2] = { "DELAY",      5,  3, 3.0f, {} };
-    sections[3] = { "REVERB",     8,  2, 2.0f, {} };
-    sections[4] = { "OUTPUT",     10, 1, 1.0f, {} };
+    // Seletores e botões
+    setupSelector (sampleSelector,     SampleBank::typeNames(),     ParamIDs::sampleType,    sampleAttachment);
+    setupSelector (divisionSelector,   DelayDivisions::names(),     ParamIDs::delayDivision, divisionAttachment);
+    setupSelector (reverbTypeSelector, ReverbEngine::typeNames(),   ParamIDs::reverbType,    reverbTypeAttachment);
+    setupToggle (syncButton,   "SYNC",   ParamIDs::delaySync, syncAttachment);
+    setupToggle (freezeButton, "FREEZE", ParamIDs::freeze,    freezeAttachment);
 
-    // Escolha do sample orgânico (Hand / Felt / Shell / Air)
-    sampleSelector.addItemList (SampleBank::typeNames(), 1);
-    sampleSelector.setJustificationType (juce::Justification::centred);
-    addAndMakeVisible (sampleSelector);
-    sampleSelectorAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (
-        processorRef.parameters, ParamIDs::sampleType, sampleSelector);
+    //            título        fila  1º knob  nº  largura  limites  topo esq.            topo dir.
+    sections[0] = { "INSTRUMENT", 0,   0,      4,  4.0f,    {},      nullptr,             nullptr };
+    sections[1] = { "SAMPLE",     0,   4,      1,  1.6f,    {},      &sampleSelector,     nullptr };
+    sections[2] = { "MOTION",     0,   5,      2,  2.0f,    {},      nullptr,             nullptr };
+    sections[3] = { "OUTPUT",     0,   7,      2,  2.0f,    {},      nullptr,             nullptr };
+    sections[4] = { "DELAY",      1,   9,      3,  3.0f,    {},      &syncButton,         &divisionSelector };
+    sections[5] = { "REVERB",     1,   12,     3,  3.0f,    {},      &reverbTypeSelector, &freezeButton };
 
     // Teclado no ecrã para testar o som com o rato
     keyboard.setAvailableRange (36, 96);
@@ -80,6 +90,24 @@ void MugenSpaceDrumEditor::setupKnob (Knob& knob, const char* parameterID, const
 
     knob.attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
         processorRef.parameters, parameterID, knob.slider);
+}
+
+void MugenSpaceDrumEditor::setupSelector (juce::ComboBox& box, const juce::StringArray& items,
+                                          const char* parameterID, std::unique_ptr<ComboBoxAttachment>& attachment)
+{
+    box.addItemList (items, 1);
+    box.setJustificationType (juce::Justification::centred);
+    addAndMakeVisible (box);
+    attachment = std::make_unique<ComboBoxAttachment> (processorRef.parameters, parameterID, box);
+}
+
+void MugenSpaceDrumEditor::setupToggle (juce::TextButton& button, const juce::String& text,
+                                        const char* parameterID, std::unique_ptr<ButtonAttachment>& attachment)
+{
+    button.setButtonText (text);
+    button.setClickingTogglesState (true);
+    addAndMakeVisible (button);
+    attachment = std::make_unique<ButtonAttachment> (processorRef.parameters, parameterID, button);
 }
 
 void MugenSpaceDrumEditor::paint (juce::Graphics& g)
@@ -161,26 +189,59 @@ void MugenSpaceDrumEditor::resized()
 
     area.removeFromBottom (34);
 
-    // Painéis: larguras proporcionais
+    // Duas filas de painéis
+    const int rowGap = 12;
+    auto topRow = area.removeFromTop ((area.getHeight() - rowGap) / 2);
+    area.removeFromTop (rowGap);
+
+    layoutRow (0, topRow);
+    layoutRow (1, area);
+}
+
+void MugenSpaceDrumEditor::layoutRow (int row, juce::Rectangle<int> area)
+{
     const int gap = 12;
     float totalUnits = 0.0f;
+    int count = 0;
     for (const auto& section : sections)
-        totalUnits += section.units;
-
-    const int usableWidth = area.getWidth() - gap * ((int) sections.size() - 1);
-
-    for (size_t s = 0; s < sections.size(); ++s)
     {
-        auto& section = sections[s];
-        const int width = (s == sections.size() - 1) ? area.getWidth()
-                                                     : juce::roundToInt ((float) usableWidth * section.units / totalUnits);
+        if (section.row != row)
+            continue;
+        totalUnits += section.units;
+        ++count;
+    }
+
+    const int usableWidth = area.getWidth() - gap * (count - 1);
+    int placed = 0;
+
+    for (auto& section : sections)
+    {
+        if (section.row != row)
+            continue;
+
+        const bool last = (++placed == count);
+        const int width = last ? area.getWidth()
+                               : juce::roundToInt ((float) usableWidth * section.units / totalUnits);
         section.bounds = area.removeFromLeft (width);
         area.removeFromLeft (gap);
 
-        auto inner = section.bounds.reduced (6).withTrimmedTop (30);
+        auto inner = section.bounds.reduced (8).withTrimmedTop (28);
 
-        if (section.title == "SAMPLE")
-            sampleSelector.setBounds (inner.removeFromTop (26).reduced (6, 0));
+        // Controlos no topo do painel (seletores e botões)
+        if (section.toolLeft != nullptr || section.toolRight != nullptr)
+        {
+            auto tools = inner.removeFromTop (26);
+            if (section.toolLeft != nullptr && section.toolRight != nullptr)
+            {
+                section.toolLeft->setBounds (tools.removeFromLeft (tools.getWidth() / 2).reduced (6, 0));
+                section.toolRight->setBounds (tools.reduced (6, 0));
+            }
+            else if (section.toolLeft != nullptr)
+            {
+                section.toolLeft->setBounds (tools.reduced (6, 0));
+            }
+            inner.removeFromTop (6);
+        }
 
         const int knobWidth = inner.getWidth() / section.numKnobs;
 
@@ -189,7 +250,7 @@ void MugenSpaceDrumEditor::resized()
             auto& knob = knobs[(size_t) (section.firstKnob + k)];
             auto column = inner.removeFromLeft (knobWidth);
             knob.label.setBounds (column.removeFromBottom (22));
-            const int size = juce::jmin (column.getWidth(), column.getHeight());
+            const int size = juce::jmin (maxKnobSize, juce::jmin (column.getWidth(), column.getHeight()));
             knob.slider.setBounds (column.withSizeKeepingCentre (size, size));
         }
     }
@@ -201,6 +262,13 @@ void MugenSpaceDrumEditor::timerCallback()
         ledLevel = 1.0f;
     else
         ledLevel *= 0.85f;
+
+    // Com o Sync ligado, o tempo vem do BPM do DAW: o knob Time fica inativo.
+    const bool synced = syncButton.getToggleState();
+    knobs[delayTimeKnob].slider.setEnabled (! synced);
+    knobs[delayTimeKnob].slider.setAlpha (synced ? 0.35f : 1.0f);
+    divisionSelector.setEnabled (synced);
+    divisionSelector.setAlpha (synced ? 1.0f : 0.45f);
 
     repaint (ledBounds.expanded (8));
 }

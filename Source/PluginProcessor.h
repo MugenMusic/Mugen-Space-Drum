@@ -6,6 +6,7 @@
 #include "SpaceDrumVoice.h"
 #include "AmbienceEngine.h"
 #include "SampleBank.h"
+#include "MotionEngine.h"
 
 // ==============================================================================
 //  PluginProcessor
@@ -31,7 +32,7 @@ public:
     bool acceptsMidi() const override  { return true; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
-    double getTailLengthSeconds() const override { return 12.0; }
+    double getTailLengthSeconds() const override { return 25.0; }
 
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
@@ -51,6 +52,7 @@ public:
 private:
     SampleBank sampleBank;
     juce::Synthesiser synth;
+    MotionEngine motion;
     AmbienceEngine ambience;
     juce::SmoothedValue<float> outputGain;
 
@@ -60,6 +62,16 @@ private:
     std::atomic<float>* reverbMix     = nullptr;
     std::atomic<float>* reverbSize    = nullptr;
     std::atomic<float>* volume        = nullptr;
+    std::atomic<float>* delaySync     = nullptr;
+    std::atomic<float>* delayDivision = nullptr;
+    std::atomic<float>* reverbType    = nullptr;
+    std::atomic<float>* shimmer       = nullptr;
+    std::atomic<float>* freeze        = nullptr;
+    std::atomic<float>* motionDepth   = nullptr;
+    std::atomic<float>* motionRate    = nullptr;
+    std::atomic<float>* width         = nullptr;
+
+    double currentBpm = 120.0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MugenSpaceDrumProcessor)
 };
