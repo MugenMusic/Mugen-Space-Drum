@@ -38,6 +38,10 @@ MugenSpaceDrumProcessor::MugenSpaceDrumProcessor()
     scaleType     = parameters.getRawParameterValue (ParamIDs::scaleType);
     scaleMapping  = parameters.getRawParameterValue (ParamIDs::scaleMapping);
     octave        = parameters.getRawParameterValue (ParamIDs::octave);
+
+    // Um plugin acabado de abrir começa no preset "Celestial Flow".
+    // (Se o DAW tiver um estado guardado, esse estado substitui este logo a seguir.)
+    presetManager.load (0);
 }
 
 void MugenSpaceDrumProcessor::prepareToPlay (double sampleRate, int)
@@ -93,6 +97,7 @@ void MugenSpaceDrumProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         if (metadata.getMessage().isNoteOn())
         {
             midiActivity.store (true);
+            notePulse.fetch_add (1);
             break;
         }
     }
@@ -143,13 +148,42 @@ void MugenSpaceDrumProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     float* left  = buffer.getWritePointer (0);
     float* right = buffer.getNumChannels() > 1 ? buffer.getWritePointer (1) : nullptr;
 
+    float peak = 0.0f;
     for (int i = 0; i < numSamples; ++i)
     {
         const float g = outputGain.getNextValue();
         left[i] = std::tanh (left[i] * g);
+        peak = juce::jmax (peak, std::abs (left[i]));
         if (right != nullptr)
+        {
             right[i] = std::tanh (right[i] * g);
+            peak = juce::jmax (peak, std::abs (right[i]));
+        }
     }
+    outputLevel.store (peak);
+}
+
+int MugenSpaceDrumProcessor::getNumPrograms()
+{
+    return presetManager.getNumFactoryPresets();
+}
+
+int MugenSpaceDrumProcessor::getCurrentProgram()
+{
+    const int index = presetManager.getCurrentIndex();
+    return (index >= 0 && index < presetManager.getNumFactoryPresets()) ? index : 0;
+}
+
+void MugenSpaceDrumProcessor::setCurrentProgram (int index)
+{
+    if (index >= 0 && index < presetManager.getNumFactoryPresets())
+        presetManager.load (index);
+}
+
+const juce::String MugenSpaceDrumProcessor::getProgramName (int index)
+{
+    const auto& entries = presetManager.getEntries();
+    return (index >= 0 && index < (int) entries.size()) ? entries[(size_t) index].name : juce::String();
 }
 
 juce::AudioProcessorEditor* MugenSpaceDrumProcessor::createEditor()

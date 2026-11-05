@@ -8,6 +8,7 @@
 #include "SampleBank.h"
 #include "MotionEngine.h"
 #include "ScaleEngine.h"
+#include "PresetManager.h"
 
 // ==============================================================================
 //  PluginProcessor
@@ -35,10 +36,11 @@ public:
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return 25.0; }
 
-    int getNumPrograms() override { return 1; }
-    int getCurrentProgram() override { return 0; }
-    void setCurrentProgram (int) override {}
-    const juce::String getProgramName (int) override { return "Default"; }
+    // Os presets de fábrica aparecem também como "programas" no DAW.
+    int getNumPrograms() override;
+    int getCurrentProgram() override;
+    void setCurrentProgram (int index) override;
+    const juce::String getProgramName (int index) override;
     void changeProgramName (int, const juce::String&) override {}
 
     void getStateInformation (juce::MemoryBlock& destData) override;
@@ -49,6 +51,10 @@ public:
     juce::AudioProcessorValueTreeState parameters;
     juce::MidiKeyboardState keyboardState;     // teclado no ecrã do plugin
     std::atomic<bool> midiActivity { false };  // acende a luz MIDI na interface
+    std::atomic<float> outputLevel { 0.0f };   // nível de saída (anima o orbe)
+    std::atomic<int> notePulse { 0 };          // conta notas tocadas (faz o orbe pulsar)
+
+    PresetManager presetManager { parameters };
 
 private:
     SampleBank sampleBank;

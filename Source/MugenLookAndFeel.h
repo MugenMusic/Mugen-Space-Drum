@@ -44,6 +44,77 @@ public:
         setColour (juce::TextButton::textColourOnId, juce::Colours::white);
     }
 
+    // Botões: separadores com sublinhado luminoso, nome do preset em "ecrã" escuro,
+    // restantes botões arredondados (violeta quando ligados).
+    void drawButtonBackground (juce::Graphics& g, juce::Button& button, const juce::Colour&,
+                               bool isMouseOver, bool isButtonDown) override
+    {
+        const auto area = button.getLocalBounds().toFloat();
+
+        if (button.getProperties().contains ("tab"))
+        {
+            if (button.getToggleState())
+            {
+                juce::ColourGradient underline (MugenColours::violet.withAlpha (0.0f), area.getX(), area.getBottom(),
+                                                MugenColours::blue.withAlpha (0.0f), area.getRight(), area.getBottom(), false);
+                underline.addColour (0.5, MugenColours::blue);
+                g.setGradientFill (underline);
+                g.fillRect (area.withTop (area.getBottom() - 2.0f));
+
+                g.setColour (MugenColours::violet.withAlpha (0.10f));
+                g.fillRect (area.withTrimmedBottom (2.0f));
+            }
+            else if (isMouseOver)
+            {
+                g.setColour (juce::Colours::white.withAlpha (0.04f));
+                g.fillRect (area);
+            }
+            return;
+        }
+
+        if (button.getProperties().contains ("presetName"))
+        {
+            g.setColour (juce::Colour (0xff0b0918));
+            g.fillRoundedRectangle (area, 8.0f);
+            g.setColour (isMouseOver ? MugenColours::violet : MugenColours::panelOutline);
+            g.drawRoundedRectangle (area.reduced (0.5f), 8.0f, 1.0f);
+
+            // Pequena seta para indicar o menu
+            juce::Path arrow;
+            const float cx = area.getRight() - 16.0f, cy = area.getCentreY();
+            arrow.addTriangle (cx - 4.0f, cy - 2.0f, cx + 4.0f, cy - 2.0f, cx, cy + 3.0f);
+            g.setColour (MugenColours::blue);
+            g.fillPath (arrow);
+            return;
+        }
+
+        auto base = button.getToggleState() ? MugenColours::violet : MugenColours::knobBody;
+        if (isButtonDown)      base = base.brighter (0.2f);
+        else if (isMouseOver)  base = base.brighter (0.1f);
+
+        g.setColour (base);
+        g.fillRoundedRectangle (area.reduced (0.5f), 6.0f);
+        g.setColour (MugenColours::panelOutline);
+        g.drawRoundedRectangle (area.reduced (0.5f), 6.0f, 1.0f);
+    }
+
+    void drawButtonText (juce::Graphics& g, juce::TextButton& button, bool, bool) override
+    {
+        const bool isTab = button.getProperties().contains ("tab");
+        const bool isPreset = button.getProperties().contains ("presetName");
+
+        g.setFont (juce::Font (juce::FontOptions (isPreset ? 15.0f : 12.0f,
+                                                  isPreset ? juce::Font::plain : juce::Font::bold)
+                                   .withKerningFactor (isPreset ? 0.02f : 0.12f)));
+
+        const bool on = button.getToggleState();
+        g.setColour (isTab ? (on ? MugenColours::text : MugenColours::textDim)
+                           : (isPreset ? MugenColours::text : (on ? juce::Colours::white : MugenColours::textDim)));
+
+        g.drawText (button.getButtonText(), button.getLocalBounds().reduced (isPreset ? 28 : 4, 0),
+                    juce::Justification::centred, true);
+    }
+
     void drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height,
                            float sliderPos, float startAngle, float endAngle,
                            juce::Slider&) override
