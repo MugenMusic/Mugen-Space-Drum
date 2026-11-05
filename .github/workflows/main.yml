@@ -1,1 +1,40 @@
+name: Build macOS VST3
 
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-15
+
+    steps:
+      - name: Descarregar o código
+        uses: actions/checkout@v4
+
+      - name: Preparar a compilação (CMake + JUCE oficial)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64
+
+      - name: Compilar
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Encontrar, assinar (ad-hoc) e comprimir o VST3
+        run: |
+          VST3_PATH=$(find build -type d -name "*.vst3" | head -n 1)
+          if [ -z "$VST3_PATH" ]; then
+            echo "Nenhum VST3 encontrado"; exit 1
+          fi
+          echo "VST3 produzido em: $VST3_PATH"
+          echo "Arquitetura do binário:"
+          file "$VST3_PATH/Contents/MacOS/"*
+          codesign --force --deep --sign - "$VST3_PATH"
+          codesign --verify --deep --strict --verbose=2 "$VST3_PATH"
+          mkdir -p dist
+          ditto -c -k --keepParent "$VST3_PATH" "dist/Mugen-Space-Drum-v0.1.0-macOS-AppleSilicon.zip"
+
+      - name: Disponibilizar para download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mugen-Space-Drum-macOS
+          path: dist/*.zip
