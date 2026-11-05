@@ -10,6 +10,7 @@
 namespace ParamIDs
 {
     // Tom do instrumento
+    inline constexpr const char* character     = "character";
     inline constexpr const char* brightness    = "brightness";
     inline constexpr const char* decay         = "decay";
     inline constexpr const char* resonance     = "resonance";

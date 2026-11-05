@@ -15,7 +15,7 @@ if(APPLE AND NOT CMAKE_OSX_ARCHITECTURES)
 endif()
 set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Versão mínima do macOS")
 
-project(MugenSpaceDrum VERSION 0.1.0 LANGUAGES C CXX)
+project(MugenSpaceDrum VERSION 0.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -33,7 +33,7 @@ juce_add_plugin(MugenSpaceDrum
     COMPANY_NAME                "Mugen"
     BUNDLE_ID                   "com.mugen.spacedrum"
     PRODUCT_NAME                "Mugen Space Drum"
-    VERSION                     0.1.0
+    VERSION                     ${PROJECT_VERSION}
     IS_SYNTH                    TRUE
     NEEDS_MIDI_INPUT            TRUE
     NEEDS_MIDI_OUTPUT           FALSE

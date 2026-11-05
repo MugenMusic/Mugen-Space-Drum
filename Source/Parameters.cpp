@@ -53,6 +53,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
     // --- Tom ------------------------------------------------------------------
+    layout.add (makeParam (ParamIDs::character, "Character",
+                           { 0.0f, 1.0f }, 0.5f,
+                           Attributes().withStringFromValueFunction ([] (float v, int)
+                           {
+                               const juce::String body = v < 0.25f ? "Tongue" : (v < 0.75f ? "Handpan" : "Crystal");
+                               return body + " " + juce::String (juce::roundToInt (v * 100.0f)) + "%";
+                           })));
+
     layout.add (makeParam (ParamIDs::brightness, "Brightness",
                            { 0.0f, 1.0f }, 0.45f, percent()));
 

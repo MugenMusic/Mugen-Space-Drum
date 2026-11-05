@@ -2,17 +2,6 @@
 
 namespace
 {
-    // Proporções de frequência dos parciais. Os três primeiros seguem a
-    // afinação típica de uma língua de tambor (fundamental, oitava, quinta
-    // acima da oitava); os restantes são inarmónicos, dando o brilho metálico.
-    constexpr std::array<double, SpaceDrumVoice::numPartials> partialRatios   { 1.0, 2.0, 3.01, 4.23, 5.41, 6.93 };
-
-    // Volume relativo de cada parcial.
-    constexpr std::array<double, SpaceDrumVoice::numPartials> partialLevels   { 1.0, 0.42, 0.22, 0.11, 0.06, 0.035 };
-
-    // Duração relativa de cada parcial (1.0 = valor do knob Decay).
-    constexpr std::array<double, SpaceDrumVoice::numPartials> partialLengths  { 1.0, 0.62, 0.40, 0.22, 0.14, 0.09 };
-
     constexpr double silenceThreshold = 0.0001; // aprox. -80 dB
 
     double multiplierForTime (double seconds, double sampleRate)
@@ -44,57 +33,82 @@ void SpaceDrumVoice::startNote (int midiNoteNumber, float velocity,
     if (sampleRate <= 0.0)
         return;
 
+    const double character      = parameters.character->load();
     const double brightnessKnob = parameters.brightness->load();
     const double decayKnob      = parameters.decay->load();
     const double resonance      = parameters.resonance->load();
 
-    const double vel        = juce::jlimit (0.0, 1.0, (double) velocity);
-    const double brightness = brightnessKnob * (0.55 + 0.45 * vel); // tocar mais forte = mais brilho
+    const double vel         = juce::jlimit (0.0, 1.0, (double) velocity);
+    const double brightness  = brightnessKnob * (0.55 + 0.45 * vel); // tocar mais forte = mais brilho
     const double fundamental = juce::MidiMessage::getMidiNoteInHertz (midiNoteNumber);
+    const double twoPiOverSr = juce::MathConstants<double>::twoPi / sampleRate;
+
+    const auto modeSet = ModalModel::forCharacter (character);
+
+    // --- Baqueta ----------------------------------------------------------------
+    // Tempo de contacto: baqueta macia toca mais tempo no metal e filtra os agudos.
+    const double hardness    = 0.15 + 0.85 * brightness;
+    const double contactTime = 0.0025 + (1.0 - hardness) * 0.006;
+    const double fundamentalResponse = 1.0 + std::pow (fundamental * contactTime, 2.0);
 
     // Notas graves soam mais tempo, notas agudas um pouco menos.
     const double pitchLength = juce::jlimit (0.45, 1.8, std::pow (2.0, -(midiNoteNumber - 60) / 30.0));
     const double baseSeconds = decayKnob * pitchLength;
 
-    for (int k = 0; k < numPartials; ++k)
+    for (size_t k = 0; k < (size_t) numModes; ++k)
     {
-        auto& p = partials[(size_t) k];
-        const double freq = fundamental * partialRatios[(size_t) k];
+        auto& m = modes[k];
 
-        if (freq >= sampleRate * 0.45)
+        // Pequena variação orgânica por toque (afinação ±0,07 %, volume ±6 %).
+        const double humanTune  = 1.0 + (random.nextDouble() * 2.0 - 1.0) * 0.0007 * (k == 0 ? 0.0 : 1.0);
+        const double humanLevel = 1.0 + (random.nextDouble() * 2.0 - 1.0) * 0.06;
+
+        const double freq = fundamental * modeSet.ratios[k] * humanTune;
+
+        if (freq >= sampleRate * 0.42)
         {
-            p.mainAmp = p.shimmerAmp = 0.0;
-            p.envelope = 0.0;
+            m.mainAmp = m.twinAmp = 0.0;
+            m.envelope = 0.0;
             continue;
         }
 
-        const double tilt = (k == 0) ? 1.0 : std::pow (0.12 + 0.88 * brightness, k * 0.7);
-        p.mainAmp    = partialLevels[(size_t) k] * tilt;
-        p.shimmerAmp = p.mainAmp * resonance * 0.7;
+        const double malletFilter = std::sqrt (fundamentalResponse / (1.0 + std::pow (freq * contactTime, 2.0)));
+
+        m.mainAmp = modeSet.levels[k] * malletFilter * humanLevel;
+        m.twinAmp = m.mainAmp * resonance * 0.7;
 
         const double lengthBoost = (k == 0) ? 1.0 : (1.0 + resonance * 1.2);
-        p.envelope = 1.0;
-        p.envelopeMultiplier = multiplierForTime (baseSeconds * partialLengths[(size_t) k] * lengthBoost, sampleRate);
+        m.envelope = 1.0;
+        m.envelopeMultiplier = multiplierForTime (baseSeconds * modeSet.lengths[k] * lengthBoost, sampleRate);
 
-        // Desafinação muito pequena: cria o batimento lento e etéreo.
+        // Gémeo ligeiramente desafinado: batimento lento e etéreo.
         const double detune = (0.0008 + 0.0035 * resonance) * ((k % 2 == 0) ? 1.0 : -1.0);
-        p.main.setFrequency (freq, sampleRate);
-        p.shimmer.setFrequency (freq * (1.0 + detune), sampleRate);
+        m.mainStep = freq * twoPiOverSr;
+        m.twinStep = freq * (1.0 + detune) * twoPiOverSr;
+        m.main.reset();
+        m.twin.reset();
     }
 
-    // Toque da baqueta: suave, nunca agressivo.
-    malletLevel      = 0.25 * brightness * vel;
-    malletMultiplier = multiplierForTime (0.03, sampleRate);
-    malletFilterCoef = onePoleCoef (800.0 + 5000.0 * brightness, sampleRate);
+    // --- Descida de afinação no ataque (até ~0,5 % com toques fortes) -------------
+    glideAmount     = 0.0015 + 0.0035 * vel * hardness;
+    glideMultiplier = std::exp (-(double) glideUpdateInterval / (0.035 * sampleRate));
+    glideCounter    = 0;
+    updateGlide();
+
+    // --- Ruído do toque: suave, nunca agressivo -------------------------------------
+    malletLevel      = 0.22 * hardness * vel;
+    malletMultiplier = multiplierForTime (0.012 + (1.0 - hardness) * 0.03, sampleRate);
+    malletFilterCoef = onePoleCoef (600.0 + 5000.0 * hardness, sampleRate);
     malletState      = 0.0;
 
-    attackSamples  = juce::jmax (1, (int) (sampleRate * (0.002 + (1.0 - brightness) * 0.008)));
+    // Ataque: mais redondo com baqueta macia.
+    attackSamples  = juce::jmax (1, (int) (sampleRate * contactTime * 0.8));
     attackPosition = 0;
 
-    toneFilterCoef  = onePoleCoef (juce::jmin (sampleRate * 0.45, 1200.0 + brightness * 10000.0 + fundamental * 2.0), sampleRate);
+    toneFilterCoef  = onePoleCoef (juce::jmin (sampleRate * 0.45, 1500.0 + brightness * 11000.0 + fundamental * 2.0), sampleRate);
     toneFilterState = 0.0;
 
-    outputGain = std::pow (vel, 1.4) * 0.16 / (1.0 + 0.35 * resonance);
+    outputGain = std::pow (vel, 1.4) * 0.15 / (1.0 + 0.35 * resonance);
 
     // Pequena abertura estéreo: graves ligeiramente à esquerda, agudos à direita.
     const float pan   = (float) juce::jlimit (-1.0, 1.0, (midiNoteNumber - 60) / 36.0) * 0.35f;
@@ -103,6 +117,18 @@ void SpaceDrumVoice::startNote (int midiNoteNumber, float velocity,
     gainRight = std::sin (angle);
 
     isActive = true;
+}
+
+void SpaceDrumVoice::updateGlide() noexcept
+{
+    const double factor = 1.0 + glideAmount;
+    for (auto& m : modes)
+    {
+        if (m.envelope <= 0.0)
+            continue;
+        m.main.setAngularStep (m.mainStep * factor);
+        m.twin.setAngularStep (m.twinStep * factor);
+    }
 }
 
 void SpaceDrumVoice::stopNote (float, bool allowTailOff)
@@ -128,15 +154,23 @@ void SpaceDrumVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer,
 
     for (int i = 0; i < numSamples; ++i)
     {
+        // A afinação desce suavemente até ao valor certo nos primeiros ~100 ms.
+        if (glideAmount > 1.0e-6 && ++glideCounter >= glideUpdateInterval)
+        {
+            glideCounter = 0;
+            glideAmount *= glideMultiplier;
+            updateGlide();
+        }
+
         double sample = 0.0;
 
-        for (auto& p : partials)
+        for (auto& m : modes)
         {
-            if (p.envelope <= 0.0)
+            if (m.envelope <= 0.0)
                 continue;
 
-            sample += (p.main.next() * p.mainAmp + p.shimmer.next() * p.shimmerAmp) * p.envelope;
-            p.envelope *= p.envelopeMultiplier;
+            sample += (m.main.next() * m.mainAmp + m.twin.next() * m.twinAmp) * m.envelope;
+            m.envelope *= m.envelopeMultiplier;
         }
 
         if (malletLevel > 1.0e-6)
@@ -164,15 +198,15 @@ void SpaceDrumVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer,
     // Manutenção dos osciladores e verificação de silêncio.
     bool stillSounding = malletLevel > silenceThreshold;
 
-    for (auto& p : partials)
+    for (auto& m : modes)
     {
-        p.main.normalise();
-        p.shimmer.normalise();
+        m.main.normalise();
+        m.twin.normalise();
 
-        if (p.envelope > silenceThreshold)
+        if (m.envelope > silenceThreshold)
             stillSounding = true;
         else
-            p.envelope = 0.0;
+            m.envelope = 0.0;
     }
 
     if (! stillSounding)

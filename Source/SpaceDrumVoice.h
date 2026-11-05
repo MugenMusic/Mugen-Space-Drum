@@ -3,24 +3,30 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <array>
 #include <atomic>
+#include "ModalModel.h"
 
 // ==============================================================================
-//  Voice Engine + Sound Generator
+//  Voice Engine + Modal Synth Engine
 //
-//  Cada voz é um pequeno "tambor" feito por síntese modal: vários osciladores
-//  senoidais (parciais) com afinações próprias e decaimentos independentes,
-//  como as línguas de metal de um Space Drum / handpan.
+//  Cada voz é um pequeno corpo metálico feito por síntese modal: 10 modos de
+//  vibração, cada um com afinação, volume e duração próprios.
 //
-//  - Parciais graves duram mais, parciais agudos desaparecem depressa.
-//  - Resonance acrescenta um segundo oscilador ligeiramente desafinado em
-//    cada parcial (batimento suave, som "vivo" e etéreo) e prolonga os agudos.
-//  - Brightness controla quanto dos parciais agudos e do toque da baqueta
-//    se ouve.
+//  - Character  : morph Tongue -> Handpan -> Crystal (ver ModalModel.h).
+//  - Brightness : dureza da baqueta. Baqueta macia = poucos agudos e ataque
+//                 redondo; baqueta dura = mais modos agudos e mais "toque".
+//  - Resonance  : cada modo ganha um "gémeo" ligeiramente desafinado
+//                 (batimento lento e etéreo) e os agudos duram mais.
+//  - Decay      : duração geral das notas.
+//
+//  Detalhes orgânicos: ligeira descida de afinação no início de cada toque
+//  (como num handpan real) e pequenas variações aleatórias em cada toque,
+//  para que duas notas iguais nunca soem exatamente iguais.
 // ==============================================================================
 
 /** Parâmetros que cada voz lê no momento em que a nota começa. */
 struct VoiceParameters
 {
+    std::atomic<float>* character  = nullptr;
     std::atomic<float>* brightness = nullptr;
     std::atomic<float>* decay      = nullptr;
     std::atomic<float>* resonance  = nullptr;
@@ -47,7 +53,7 @@ public:
     void renderNextBlock (juce::AudioBuffer<float>& outputBuffer,
                           int startSample, int numSamples) override;
 
-    static constexpr int numPartials = 6;
+    static constexpr int numModes = ModalModel::numModes;
 
 private:
     /** Oscilador senoidal por rotação (barato e muito limpo). */
@@ -56,13 +62,16 @@ private:
         double cosState = 1.0, sinState = 0.0;
         double cosStep  = 1.0, sinStep  = 0.0;
 
-        void setFrequency (double hz, double sampleRate)
+        void reset() noexcept
         {
-            const double w = juce::MathConstants<double>::twoPi * hz / sampleRate;
-            cosStep = std::cos (w);
-            sinStep = std::sin (w);
             cosState = 1.0;
             sinState = 0.0;
+        }
+
+        void setAngularStep (double radiansPerSample) noexcept
+        {
+            cosStep = std::cos (radiansPerSample);
+            sinStep = std::sin (radiansPerSample);
         }
 
         inline double next() noexcept
@@ -85,21 +94,30 @@ private:
         }
     };
 
-    struct Partial
+    struct Mode
     {
-        Oscillator main, shimmer;
-        double mainAmp = 0.0, shimmerAmp = 0.0;
+        Oscillator main, twin;
+        double mainStep = 0.0, twinStep = 0.0;   // radianos por amostra (sem glide)
+        double mainAmp = 0.0, twinAmp = 0.0;
         double envelope = 0.0, envelopeMultiplier = 1.0;
     };
 
+    void updateGlide() noexcept;
+
     VoiceParameters parameters;
-    std::array<Partial, numPartials> partials;
+    std::array<Mode, numModes> modes;
+
+    juce::Random random;
 
     // Toque da baqueta (ruído filtrado muito curto)
-    juce::Random random;
     double malletLevel = 0.0, malletMultiplier = 0.0, malletFilterCoef = 0.0, malletState = 0.0;
 
-    // Ataque suave (evita cliques e deixa o som "fofinho")
+    // Descida de afinação no ataque
+    double glideAmount = 0.0, glideMultiplier = 1.0;
+    int glideCounter = 0;
+    static constexpr int glideUpdateInterval = 16;
+
+    // Ataque suave
     int attackSamples = 1, attackPosition = 0;
 
     // Filtro passa-baixo final da voz

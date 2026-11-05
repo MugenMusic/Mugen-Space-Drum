@@ -6,6 +6,7 @@ MugenSpaceDrumProcessor::MugenSpaceDrumProcessor()
       parameters (*this, nullptr, "MugenSpaceDrum", createParameterLayout())
 {
     VoiceParameters voiceParams;
+    voiceParams.character  = parameters.getRawParameterValue (ParamIDs::character);
     voiceParams.brightness = parameters.getRawParameterValue (ParamIDs::brightness);
     voiceParams.decay      = parameters.getRawParameterValue (ParamIDs::decay);
     voiceParams.resonance  = parameters.getRawParameterValue (ParamIDs::resonance);

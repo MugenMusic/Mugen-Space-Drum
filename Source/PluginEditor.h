@@ -40,7 +40,7 @@ private:
     MugenSpaceDrumProcessor& processorRef;
     MugenLookAndFeel lookAndFeel;
 
-    static constexpr int numKnobs = 9;
+    static constexpr int numKnobs = 10;
     std::array<Knob, numKnobs> knobs;
     std::array<Section, 4> sections;
 

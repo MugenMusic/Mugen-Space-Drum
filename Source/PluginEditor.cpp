@@ -2,7 +2,7 @@
 
 namespace
 {
-    constexpr int editorWidth  = 860;
+    constexpr int editorWidth  = 940;
     constexpr int editorHeight = 560;
 }
 
@@ -14,20 +14,21 @@ MugenSpaceDrumEditor::MugenSpaceDrumEditor (MugenSpaceDrumProcessor& p)
     setLookAndFeel (&lookAndFeel);
 
     // Ordem dos knobs no ecrã
-    setupKnob (knobs[0], ParamIDs::brightness,    "Brightness");
-    setupKnob (knobs[1], ParamIDs::decay,         "Decay");
-    setupKnob (knobs[2], ParamIDs::resonance,     "Resonance");
-    setupKnob (knobs[3], ParamIDs::delayMix,      "Mix");
-    setupKnob (knobs[4], ParamIDs::delayTime,     "Time");
-    setupKnob (knobs[5], ParamIDs::delayFeedback, "Feedback");
-    setupKnob (knobs[6], ParamIDs::reverbMix,     "Mix");
-    setupKnob (knobs[7], ParamIDs::reverbSize,    "Size");
-    setupKnob (knobs[8], ParamIDs::volume,        "Volume");
+    setupKnob (knobs[0], ParamIDs::character,     "Character");
+    setupKnob (knobs[1], ParamIDs::brightness,    "Brightness");
+    setupKnob (knobs[2], ParamIDs::decay,         "Decay");
+    setupKnob (knobs[3], ParamIDs::resonance,     "Resonance");
+    setupKnob (knobs[4], ParamIDs::delayMix,      "Mix");
+    setupKnob (knobs[5], ParamIDs::delayTime,     "Time");
+    setupKnob (knobs[6], ParamIDs::delayFeedback, "Feedback");
+    setupKnob (knobs[7], ParamIDs::reverbMix,     "Mix");
+    setupKnob (knobs[8], ParamIDs::reverbSize,    "Size");
+    setupKnob (knobs[9], ParamIDs::volume,        "Volume");
 
-    sections[0] = { "TONE",   0, 3, {} };
-    sections[1] = { "DELAY",  3, 3, {} };
-    sections[2] = { "REVERB", 6, 2, {} };
-    sections[3] = { "OUTPUT", 8, 1, {} };
+    sections[0] = { "INSTRUMENT", 0, 4, {} };
+    sections[1] = { "DELAY",      4, 3, {} };
+    sections[2] = { "REVERB",     7, 2, {} };
+    sections[3] = { "OUTPUT",     9, 1, {} };
 
     // Teclado no ecrã para testar o som com o rato
     keyboard.setAvailableRange (36, 96);
@@ -99,7 +100,7 @@ void MugenSpaceDrumEditor::paint (juce::Graphics& g)
 
     g.setColour (MugenColours::textDim);
     g.setFont (juce::Font (juce::FontOptions (12.0f)));
-    g.drawText ("ethereal modal percussion", 30, 56, 300, 18, juce::Justification::centredLeft);
+    g.drawText ("Enter another dimension.", 30, 56, 300, 18, juce::Justification::centredLeft);
 
     // Luz de atividade MIDI
     g.setColour (MugenColours::textDim);
@@ -153,7 +154,7 @@ void MugenSpaceDrumEditor::resized()
 
     // Painéis: larguras proporcionais ao número de knobs
     const int gap = 12;
-    const int totalKnobs = 9;
+    const int totalKnobs = numKnobs;
     const int usableWidth = area.getWidth() - gap * ((int) sections.size() - 1);
 
     for (size_t s = 0; s < sections.size(); ++s)
