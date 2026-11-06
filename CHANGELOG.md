@@ -1,5 +1,16 @@
 # Changelog — Mugen Space Drum
 
+## v0.6.2 — Palco central dinâmico
+
+- **Palco central** maior, com ecrã técnico (grelha subtil, nebulosa, indicador LIVE ENGINE, contador PRESET 03/16).
+- **Carrossel de presets animado**: o preset atual em destaque e os vizinhos a desvanecer dos lados;
+  desliza ao mudar de preset (pelo browser, pelas setas, pelo menu ou pelo DAW).
+  Clicar nos lados ou rodar a roda do rato muda de preset.
+- **Etiquetas do som** por baixo: sample, corpo, tipo de reverb e escala — atualizam ao vivo.
+- **Anel de onda ao vivo** à volta do orbe: desenha o som real que sai do plugin, com mostrador em marcas finas.
+- Painéis com gradiente e fio de luz no topo; macros com valor em percentagem.
+- Octave e Tune passam para o separador Scale & Tuning; faixa OUT com fader de volume e Width.
+
 ## v0.6.1 — Nova interface (estilo sintetizador profissional)
 
 - Organização inspirada nos grandes sintetizadores, com visual Mugen moderno:
