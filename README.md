@@ -2,7 +2,7 @@
 
 Instrumento virtual VST3 inspirado nos Space Drums e handpans: um som etéreo, hipnótico e suave, feito por síntese modal, com delay e reverb atmosféricos.
 
-**Made by Mugen** · versão 0.7.1
+**Made by Mugen** · versão 0.8.0
 
 ## Controlos
 
@@ -22,13 +22,18 @@ Instrumento virtual VST3 inspirado nos Space Drums e handpans: um som etéreo, h
 | Reverb | Freeze | Suspende a cauda no ar |
 | Scale | Root / Scale / Mapping | Escala musical (41 escalas: handpan, pentatónicas, modos do Ableton, exóticas e do mundo) e forma de a tocar |
 | Scale | Octave / Tune | Oitava e afinação fina |
-| Ghost | Ghost On / Rate / Density / Range | Seguras uma nota e o plugin toca padrões na escala, no tempo do DAW |
+| Ghost | Ghost On / Mode / Rate / Density / Range | Ghost: padrões generativos na escala; Arp Up / Down / Up-Down: as notas seguradas por ordem |
 | Expression | Velocity / Mod Wheel / Aftertouch | Tocar suave = fofinho, forte = metal; roda e aftertouch abrem Shimmer e Motion |
 | Output | Width / Volume | Largura estéreo e volume final |
 
+## Temas
+
+Quatro temas visuais, escolhidos no seletor da barra de topo (ficam guardados para todos os projetos):
+**Mugen Nebula**, **Aurora Borealis**, **Solar Eclipse** e **Sakura Moon**.
+
 ## Presets
 
-16 presets de fábrica (Celestial, Organic, Rhythmic, Atmosphere, Crystal). Os presets guardados com **SAVE** ficam em
+22 presets de fábrica (Celestial, Organic, Rhythmic, Atmosphere, Crystal, Sequences). Os presets guardados com **SAVE** ficam em
 `~/Library/Audio/Presets/Mugen/Mugen Space Drum/` e aparecem na categoria **User**.
 
 ## Compilação

@@ -1,5 +1,18 @@
 # Changelog — Mugen Space Drum
 
+## v0.8.0 — Arp, Sequences e temas
+
+- **Modo Arp** nas Ghost Notes: novo seletor *Mode* com **Ghost** (generativo), **Arp Up**, **Arp Down** e **Arp Up/Down**.
+  O arpejo toca as notas seguradas por ordem, repetidas por *Range* oitavas, no tempo do DAW; *Density* cria pausas.
+- **6 presets novos** na categoria **Sequences**, já com Ghost Notes ou Arp ligados:
+  Dream Sequencer, Zen Garden Walk (Hirajoshi), Starfall (Aegean), Phrygian Caravan, Crystal Arpeggio, Lunar Steps.
+  Os presets passam a definir também as Ghost Notes (os presets antigos desligam-nas).
+- **3 temas novos**, desenhados de raiz, com arte própria no cabeçalho:
+  **Aurora Borealis** (cortinas de aurora esmeralda e ciano), **Solar Eclipse** (sol negro com coroa dourada e brasas)
+  e **Sakura Moon** (lua cheia e pétalas de cerejeira). O original chama-se agora **Mugen Nebula** (com planeta).
+  Seletor de tema na barra de topo; a escolha fica guardada no Mac e vale para todos os projetos.
+  As estrelas cadentes usam as cores de cada tema.
+
 ## v0.7.1 — Mais escalas e chuva de estrelas
 
 - **41 escalas** (antes 11), num menu organizado por famílias:
