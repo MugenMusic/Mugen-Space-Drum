@@ -9,14 +9,13 @@ namespace
     // --- Mapa da janela (coordenadas de desenho, 1280 x 800) ----------------------
     const juce::Rectangle<int> topBarArea      { 0,    0,   1280, 40 };
     const juce::Rectangle<int> sidebarArea     { 0,    40,  264,  760 };
-    const juce::Rectangle<int> headerBandArea  { 264,  40,  1016, 118 };
-    const juce::Rectangle<int> patchDisplayArea{ 562,  106, 420,  40 };
-    const juce::Rectangle<int> tabRowArea      { 397,  166, 750,  34 };
-    const juce::Rectangle<int> tuningStripArea { 276,  208, 96,   428 };
-    const juce::Rectangle<int> leftPanelArea   { 384,  208, 246,  428 };
-    const juce::Rectangle<int> screenArea      { 642,  208, 264,  428 };
-    const juce::Rectangle<int> rightPanelArea  { 918,  208, 246,  428 };
-    const juce::Rectangle<int> outputStripArea { 1176, 208, 92,   428 };
+    const juce::Rectangle<int> headerBandArea  { 264,  40,  1016, 110 };
+    const juce::Rectangle<int> patchDisplayArea{ 562,  100, 420,  38 };
+    const juce::Rectangle<int> tabRowArea      { 397,  158, 750,  32 };
+    const juce::Rectangle<int> leftPanelArea   { 276,  198, 220,  438 };
+    const juce::Rectangle<int> stageArea       { 508,  198, 436,  438 };
+    const juce::Rectangle<int> rightPanelArea  { 956,  198, 220,  438 };
+    const juce::Rectangle<int> outputStripArea { 1188, 198, 80,   438 };
     const juce::Rectangle<int> macroArea       { 276,  644, 992,  56 };
     const juce::Rectangle<int> keyboardArea    { 276,  708, 992,  82 };
 
@@ -29,19 +28,30 @@ namespace
     void drawPanel (juce::Graphics& g, juce::Rectangle<int> bounds, const juce::String& title, bool screen = false)
     {
         const auto area = bounds.toFloat();
-        g.setColour (screen ? MugenColours::screen : MugenColours::panel);
-        g.fillRoundedRectangle (area, 10.0f);
+
+        // Corpo com gradiente vertical suave
+        g.setGradientFill (juce::ColourGradient (screen ? MugenColours::screen : juce::Colour (0xff1a1831), 0.0f, area.getY(),
+                                                 screen ? MugenColours::screen : juce::Colour (0xff121024), 0.0f, area.getBottom(), false));
+        g.fillRoundedRectangle (area, 12.0f);
 
         auto header = area.withHeight (30.0f);
         juce::Path headerShape;
         headerShape.addRoundedRectangle (header.getX(), header.getY(), header.getWidth(), header.getHeight(),
-                                         10.0f, 10.0f, true, true, false, false);
-        g.setColour (screen ? juce::Colour (0xff0e0c1c) : MugenColours::panelHeader);
+                                         12.0f, 12.0f, true, true, false, false);
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff25214a), 0.0f, header.getY(),
+                                                 MugenColours::panelHeader, 0.0f, header.getBottom(), false));
         g.fillPath (headerShape);
 
+        // Contorno e fio de luz no topo
         g.setColour (MugenColours::panelOutline);
-        g.drawRoundedRectangle (area.reduced (0.5f), 10.0f, 1.0f);
+        g.drawRoundedRectangle (area.reduced (0.5f), 12.0f, 1.0f);
         g.fillRect (header.withTop (header.getBottom() - 1.0f).reduced (1.0f, 0.0f));
+
+        juce::ColourGradient topLight (MugenColours::violet.withAlpha (0.0f), area.getX() + 12.0f, 0.0f,
+                                       MugenColours::blue.withAlpha (0.0f), area.getRight() - 12.0f, 0.0f, false);
+        topLight.addColour (0.5, MugenColours::violet.withAlpha (0.65f));
+        g.setGradientFill (topLight);
+        g.fillRect (juce::Rectangle<float> (area.getX() + 12.0f, area.getY(), area.getWidth() - 24.0f, 1.0f));
 
         // Título com triângulo
         const auto titleFont = font (12.0f, true, 0.18f);
@@ -703,6 +713,256 @@ public:
 };
 
 // ==============================================================================
+//  Palco central: orbe + carrossel de presets animado + etiquetas do som
+// ==============================================================================
+class PresetStage : public juce::Component,
+                    private juce::Timer
+{
+public:
+    PresetStage (MugenSpaceDrumProcessor& p, juce::Component& centrePiece)
+        : processor (p), orb (centrePiece)
+    {
+        addAndMakeVisible (orb);
+        lastIndex = processor.presetManager.getCurrentIndex();
+        startTimerHz (60);
+    }
+
+    ~PresetStage() override { stopTimer(); }
+
+    std::function<void()> onPresetChosen;
+
+    void paint (juce::Graphics& g) override
+    {
+        const auto area = getLocalBounds().toFloat();
+
+        // Ecrã: fundo profundo com nebulosa
+        g.setColour (MugenColours::screen);
+        g.fillRoundedRectangle (area, 14.0f);
+        g.setGradientFill (juce::ColourGradient (MugenColours::violet.withAlpha (0.20f), area.getCentreX(), area.getY() + 150.0f,
+                                                 MugenColours::violet.withAlpha (0.0f), area.getCentreX() + 260.0f, area.getY() + 150.0f, true));
+        g.fillRoundedRectangle (area, 14.0f);
+
+        // Grelha subtil (look de ecrã técnico)
+        g.setColour (juce::Colours::white.withAlpha (0.025f));
+        for (float x = area.getX() + 18.0f; x < area.getRight(); x += 24.0f)
+            g.fillRect (x, area.getY() + 40.0f, 1.0f, area.getHeight() - 150.0f);
+        for (float y = area.getY() + 40.0f; y < area.getBottom() - 110.0f; y += 24.0f)
+            g.fillRect (area.getX() + 8.0f, y, area.getWidth() - 16.0f, 1.0f);
+
+        g.setColour (MugenColours::panelOutline);
+        g.drawRoundedRectangle (area.reduced (0.5f), 14.0f, 1.0f);
+
+        drawStatusBar (g);
+        drawCarousel (g);
+        drawChips (g);
+    }
+
+    void resized() override
+    {
+        orb.setBounds (getLocalBounds().withTrimmedTop (34).withTrimmedBottom (132));
+    }
+
+    void mouseUp (const juce::MouseEvent& e) override
+    {
+        if (! carouselArea().contains (e.getPosition()))
+            return;
+
+        const float dx = (float) e.x - (float) getWidth() * 0.5f;
+        if (dx < -70.0f)       step (-1);
+        else if (dx > 70.0f)   step (1);
+    }
+
+    void mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails& wheel) override
+    {
+        wheelAccumulator += wheel.deltaY + wheel.deltaX;
+        if (std::abs (wheelAccumulator) > 0.25f)
+        {
+            step (wheelAccumulator > 0.0f ? -1 : 1);
+            wheelAccumulator = 0.0f;
+        }
+    }
+
+private:
+    juce::Rectangle<int> carouselArea() const { return { 0, getHeight() - 128, getWidth(), 70 }; }
+
+    void step (int direction)
+    {
+        if (direction < 0) processor.presetManager.loadPrevious();
+        else               processor.presetManager.loadNext();
+        if (onPresetChosen)
+            onPresetChosen();
+    }
+
+    void timerCallback() override
+    {
+        const int index = processor.presetManager.getCurrentIndex();
+        const int count = (int) processor.presetManager.getEntries().size();
+
+        if (index != lastIndex)
+        {
+            // Direção mais curta (o carrossel dá a volta)
+            int delta = index - lastIndex;
+            if (count > 0 && lastIndex >= 0 && index >= 0)
+            {
+                if (delta >  count / 2) delta -= count;
+                if (delta < -count / 2) delta += count;
+            }
+            offset += (float) juce::jlimit (-3, 3, delta);
+            flash = 1.0f;
+            lastIndex = index;
+        }
+
+        offset *= 0.84f;
+        if (std::abs (offset) < 0.001f)
+            offset = 0.0f;
+        flash *= 0.95f;
+        time += 1.0f / 60.0f;
+
+        repaint (getLocalBounds().withTrimmedTop (getHeight() - 132));
+        repaint (getLocalBounds().withHeight (34));
+    }
+
+    void drawStatusBar (juce::Graphics& g)
+    {
+        const auto& entries = processor.presetManager.getEntries();
+        const int index = processor.presetManager.getCurrentIndex();
+        const auto bar = getLocalBounds().withHeight (34).reduced (14, 0);
+
+        // Indicador "ao vivo"
+        const float pulse = 0.5f + 0.5f * std::sin (time * 3.0f);
+        g.setColour (MugenColours::blue.withAlpha (0.35f + 0.5f * pulse));
+        g.fillEllipse ((float) bar.getX(), (float) bar.getCentreY() - 3.5f, 7.0f, 7.0f);
+        g.setColour (MugenColours::textDim);
+        g.setFont (font (10.5f, true, 0.25f));
+        g.drawText ("LIVE ENGINE", bar.withTrimmedLeft (14), juce::Justification::centredLeft);
+
+        const juce::String counter = (index >= 0 ? juce::String (index + 1).paddedLeft ('0', 2) : juce::String ("--"))
+                                   + " / " + juce::String ((int) entries.size()).paddedLeft ('0', 2);
+        g.drawText ("PRESET " + counter, bar, juce::Justification::centredRight);
+    }
+
+    void drawCarousel (juce::Graphics& g)
+    {
+        const auto& entries = processor.presetManager.getEntries();
+        const int count = (int) entries.size();
+        const int index = processor.presetManager.getCurrentIndex();
+        const auto area = carouselArea().toFloat();
+        const float centreX = area.getCentreX();
+        const float spacing = 185.0f;
+
+        g.saveState();
+        g.reduceClipRegion (carouselArea().reduced (10, 0));
+
+        // Linha de luz por baixo do nome atual
+        juce::ColourGradient line (MugenColours::violet.withAlpha (0.0f), area.getX() + 30.0f, 0.0f,
+                                   MugenColours::blue.withAlpha (0.0f), area.getRight() - 30.0f, 0.0f, false);
+        line.addColour (0.5, MugenColours::blue.withAlpha (0.55f + 0.45f * flash));
+        g.setGradientFill (line);
+        g.fillRect (juce::Rectangle<float> (area.getX() + 30.0f, area.getBottom() - 8.0f, area.getWidth() - 60.0f, 1.0f));
+
+        if (count > 0 && index >= 0)
+        {
+            for (int k = -3; k <= 3; ++k)
+            {
+                const int entryIndex = ((index + k) % count + count) % count;
+                const float position = (float) k + offset;
+                const float distance = std::abs (position);
+                if (distance > 2.6f)
+                    continue;
+
+                const float x = centreX + position * spacing;
+                const float closeness = juce::jlimit (0.0f, 1.0f, 1.0f - distance);
+                const float alpha = juce::jlimit (0.0f, 1.0f, 1.0f - distance * 0.42f);
+                const float size = 14.0f + 10.0f * closeness;
+
+                const auto& entry = entries[(size_t) entryIndex];
+                const auto textArea = juce::Rectangle<float> (x - 120.0f, area.getY() + 10.0f, 240.0f, 34.0f);
+
+                if (closeness > 0.05f)
+                {
+                    g.setColour (MugenColours::violet.withAlpha (0.22f * closeness));
+                    g.setFont (font (size, false, 0.04f));
+                    g.drawText (entry.name, textArea.translated (0.0f, 1.5f).expanded (2.0f, 0.0f), juce::Justification::centred, true);
+                }
+
+                g.setColour ((closeness > 0.5f ? juce::Colours::white : MugenColours::textDim).withAlpha (alpha));
+                g.setFont (font (size, closeness > 0.5f, 0.04f));
+                g.drawText (entry.name, textArea, juce::Justification::centred, true);
+
+                g.setColour (MugenColours::violet.interpolatedWith (MugenColours::blue, 0.5f).withAlpha (alpha * (0.4f + 0.6f * closeness)));
+                g.setFont (font (9.5f, true, 0.25f));
+                g.drawText (entry.category.toUpperCase(), textArea.translated (0.0f, 30.0f).withHeight (14.0f), juce::Justification::centred);
+            }
+        }
+
+        g.restoreState();
+
+        // Setas laterais
+        for (int side : { -1, 1 })
+        {
+            const float cx = side < 0 ? area.getX() + 18.0f : area.getRight() - 18.0f;
+            juce::Path chevron;
+            chevron.startNewSubPath (cx + 4.0f * (float) side * -1.0f, area.getCentreY() - 11.0f);
+            chevron.lineTo (cx + 4.0f * (float) side, area.getCentreY() - 4.0f);
+            chevron.lineTo (cx + 4.0f * (float) side * -1.0f, area.getCentreY() + 3.0f);
+            g.setColour (MugenColours::blue.withAlpha (0.8f));
+            g.strokePath (chevron, juce::PathStrokeType (1.8f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        }
+    }
+
+    void drawChips (juce::Graphics& g)
+    {
+        auto text = [this] (const char* id)
+        {
+            if (auto* param = processor.parameters.getParameter (id))
+                return param->getCurrentValueAsText();
+            return juce::String();
+        };
+
+        const juce::StringArray chips {
+            text (ParamIDs::sampleType),
+            text (ParamIDs::character).upToFirstOccurrenceOf (" ", false, false),
+            text (ParamIDs::reverbType),
+            text (ParamIDs::scaleRoot) + " " + text (ParamIDs::scaleType)
+        };
+
+        const auto chipFont = font (11.0f, true, 0.08f);
+        constexpr float gap = 8.0f, padding = 14.0f, height = 24.0f;
+
+        float total = 0.0f;
+        std::vector<float> widths;
+        for (const auto& c : chips)
+        {
+            widths.push_back (juce::GlyphArrangement::getStringWidth (chipFont, c) + padding * 2.0f);
+            total += widths.back();
+        }
+        total += gap * (float) (chips.size() - 1);
+
+        float x = (float) getWidth() * 0.5f - total * 0.5f;
+        const float y = (float) getHeight() - 46.0f;
+
+        g.setFont (chipFont);
+        for (int i = 0; i < chips.size(); ++i)
+        {
+            const auto chip = juce::Rectangle<float> (x, y, widths[(size_t) i], height);
+            g.setColour (juce::Colour (0xff141230));
+            g.fillRoundedRectangle (chip, height * 0.5f);
+            g.setColour ((i % 2 == 0 ? MugenColours::violet : MugenColours::blue).withAlpha (0.55f));
+            g.drawRoundedRectangle (chip.reduced (0.5f), height * 0.5f, 1.0f);
+            g.setColour (MugenColours::text);
+            g.drawText (chips[i], chip, juce::Justification::centred);
+            x += widths[(size_t) i] + gap;
+        }
+    }
+
+    MugenSpaceDrumProcessor& processor;
+    juce::Component& orb;
+
+    int lastIndex = -1;
+    float offset = 0.0f, flash = 0.0f, time = 0.0f, wheelAccumulator = 0.0f;
+};
+
+// ==============================================================================
 //  MainView — tudo o que se vê, desenhado em 1280 x 800 e depois escalado
 // ==============================================================================
 class MugenSpaceDrumEditor::MainView : public juce::Component,
@@ -716,7 +976,8 @@ public:
           orb (p),
           scaleCircle (p),
           motionScope (p),
-          keyboard (p.keyboardState, p)
+          keyboard (p.keyboardState, p),
+          stage (p, orb)
     {
         // --- Knobs ------------------------------------------------------------------
         makeKnob (character,   ParamIDs::character,     "Character");
@@ -774,7 +1035,8 @@ public:
             addAndMakeVisible (tab);
         }
 
-        addAndMakeVisible (orb);
+        stage.onPresetChosen = [this] { presetChanged(); };
+        addAndMakeVisible (stage);
 
         browser.onPresetChosen = [this] { presetChanged(); };
         browser.onSaveRequested = [this] { savePreset(); };
@@ -858,27 +1120,27 @@ public:
 
             g.setColour (juce::Colours::white.withAlpha (0.75f));
             g.setFont (font (11.0f, false, 0.6f));
-            g.drawText ("SPACE DRUM", 290, 118, 220, 20, juce::Justification::centredLeft);
-            g.drawText ("MADE BY MUGEN", 1030, 118, 230, 20, juce::Justification::centredRight);
+            g.drawText ("SPACE DRUM", 290, 110, 220, 20, juce::Justification::centredLeft);
+            g.drawText ("MADE BY MUGEN", 1030, 110, 230, 20, juce::Justification::centredRight);
         }
 
-        // Faixas laterais e ecrã central
-        drawPanel (g, tuningStripArea, "TUNING");
-        drawPanel (g, outputStripArea, "OUTPUT");
-        drawPanel (g, screenArea, "MUGEN ORB", true);
+        // Faixa de saída
+        drawPanel (g, outputStripArea, "OUT");
 
-        // Legenda do ecrã
-        g.setColour (MugenColours::blue);
-        g.setFont (font (15.0f));
-        g.drawText (screenCaption, screenArea.withTrimmedTop (screenArea.getHeight() - 40), juce::Justification::centred);
+        // Brilho por trás do palco central
+        g.setGradientFill (juce::ColourGradient (MugenColours::violet.withAlpha (0.16f), (float) stageArea.getCentreX(), (float) stageArea.getCentreY(),
+                                                 MugenColours::violet.withAlpha (0.0f), (float) stageArea.getCentreX() + 420.0f, (float) stageArea.getCentreY(), true));
+        g.fillRect (stageArea.expanded (40, 20));
 
         // Macros
         {
             const auto area = macroArea.toFloat();
-            g.setColour (MugenColours::panel);
-            g.fillRoundedRectangle (area, 10.0f);
+            g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1a1831), 0.0f, area.getY(),
+                                                     juce::Colour (0xff121024), 0.0f, area.getBottom(), false));
+            g.fillRoundedRectangle (area, 12.0f);
             g.setColour (MugenColours::panelOutline);
-            g.drawRoundedRectangle (area.reduced (0.5f), 10.0f, 1.0f);
+            g.drawRoundedRectangle (area.reduced (0.5f), 12.0f, 1.0f);
+
         }
     }
 
@@ -900,22 +1162,19 @@ public:
             page.right.setBounds (rightPanelArea);
         }
 
-        orb.setBounds (screenArea.withTrimmedTop (30).withTrimmedBottom (40).reduced (4));
+        stage.setBounds (stageArea);
 
-        // Faixa TUNING: dois knobs em coluna
-        tuningPanel.setBounds (tuningStripArea);
-
-        // Faixa OUTPUT: fader do volume + knob Width
-        auto output = outputStripArea.reduced (8).withTrimmedTop (30);
-        auto widthArea = output.removeFromBottom (126);
+        // Faixa OUT: fader do volume + knob Width
+        auto output = outputStripArea.reduced (4, 8).withTrimmedTop (30);
+        auto widthArea = output.removeFromBottom (112);
         output.removeFromBottom (6);
         volumeLabel.setBounds (output.removeFromBottom (18));
         volumeFader.setBounds (output.reduced (0, 4));
-        width.slider.setBounds (widthArea.removeFromTop (100).withSizeKeepingCentre (84, 100));
+        width.slider.setBounds (widthArea.removeFromTop (88).withSizeKeepingCentre (72, 88));
         width.label.setBounds (widthArea.removeFromTop (20));
 
         // Macros
-        auto macroRow = macroArea.reduced (18, 6);
+        auto macroRow = macroArea.reduced (24, 6).withTrimmedLeft (10);
         const int macroWidth = macroRow.getWidth() / (int) macros.size();
         for (auto& macro : macros)
         {
@@ -977,6 +1236,7 @@ private:
 
     struct Macro
     {
+        juce::String name;
         juce::Slider slider;
         juce::Label label;
         std::unique_ptr<SliderAttachment> attachment;
@@ -986,6 +1246,7 @@ private:
     {
         macro.slider.setSliderStyle (juce::Slider::LinearHorizontal);
         macro.slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        macro.name = name;
         macro.label.setText (name, juce::dontSendNotification);
         macro.label.setJustificationType (juce::Justification::centred);
         macro.label.setFont (font (10.5f, true, 0.2f));
@@ -1057,7 +1318,7 @@ private:
 
         auto& scalePage = pages[4];
         fillPanel (scalePage.left, "SCALE", "Every key plays the scale",
-                   { { &rootSelector.box }, { &scaleSelector.box }, { &mappingSelector.box } }, {});
+                   { { &rootSelector.box, &mappingSelector.box }, { &scaleSelector.box } }, { &octave, &tune });
         fillPanel (scalePage.right, "SCALE MAP", "Notes of the chosen scale", {}, {}, &scaleCircle);
 
         for (auto& page : pages)
@@ -1066,18 +1327,7 @@ private:
             addChildComponent (page.right);
         }
 
-        // Faixas laterais
-        tuningPanel.title = "TUNING";
-        tuningPanel.knobsPerRow = 1;
-        tuningPanel.maxKnobSize = 64;
-        for (auto* k : { &octave, &tune })
-        {
-            tuningPanel.addAndMakeVisible (k->slider);
-            tuningPanel.addAndMakeVisible (k->label);
-            tuningPanel.knobs.push_back ({ &k->slider, &k->label });
-        }
-        addAndMakeVisible (tuningPanel);
-
+        // Faixa OUT
         addAndMakeVisible (width.slider);
         addAndMakeVisible (width.label);
         volumeLabel.setText ("Volume", juce::dontSendNotification);
@@ -1095,7 +1345,6 @@ private:
             pages[i].right.setVisible ((int) i == index);
         }
         processor.parameters.state.setProperty ("uiTab", index, nullptr);
-        updateScreenCaption();
     }
 
     juce::String valueText (const char* id) const
@@ -1103,26 +1352,6 @@ private:
         if (auto* param = processor.parameters.getParameter (id))
             return param->getCurrentValueAsText();
         return {};
-    }
-
-    void updateScreenCaption()
-    {
-        const auto dot = juce::String::fromUTF8 ("  \xc2\xb7  ");
-        juce::String caption;
-        switch (currentPage)
-        {
-            case 0:  caption = valueText (ParamIDs::sampleType) + dot + valueText (ParamIDs::character); break;
-            case 1:  caption = "Resonance " + valueText (ParamIDs::resonance); break;
-            case 2:  caption = valueText (ParamIDs::reverbType) + (processor.parameters.getRawParameterValue (ParamIDs::freeze)->load() > 0.5f ? dot + "Frozen" : juce::String()); break;
-            case 3:  caption = "Motion " + valueText (ParamIDs::motionRate); break;
-            default: caption = valueText (ParamIDs::scaleRoot) + " " + valueText (ParamIDs::scaleType); break;
-        }
-
-        if (caption != screenCaption)
-        {
-            screenCaption = caption;
-            repaint (screenArea);
-        }
     }
 
     void presetChanged()
@@ -1187,7 +1416,13 @@ private:
             scaleCircle.repaint();
         }
 
-        updateScreenCaption();
+        // Valores dos macros ao lado do nome
+        for (auto& macro : macros)
+        {
+            const auto text = macro.name + "   " + juce::String (juce::roundToInt (macro.slider.getValue() * 100.0 / juce::jmax (0.0001, macro.slider.getMaximum()))) + "%";
+            if (macro.label.getText() != text)
+                macro.label.setText (text, juce::dontSendNotification);
+        }
     }
 
     MugenSpaceDrumProcessor& processor;
@@ -1211,9 +1446,9 @@ private:
     ScaleCircle scaleCircle;
     MotionScope motionScope;
     ScaleKeyboard keyboard;
+    PresetStage stage;
 
     std::array<TabPanels, 5> pages;
-    ControlPanel tuningPanel;
     std::array<juce::TextButton, 5> tabs;
 
     std::unique_ptr<juce::FileChooser> chooser;
@@ -1221,7 +1456,7 @@ private:
     juce::Rectangle<int> ledBounds;
     float ledLevel = 0.0f;
     int currentPage = 0;
-    juce::String lastPresetName, screenCaption;
+    juce::String lastPresetName;
     int lastScaleSignature = -1;
     std::vector<juce::Point<float>> stars;
 };

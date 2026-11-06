@@ -149,17 +149,24 @@ void MugenSpaceDrumProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     float* right = buffer.getNumChannels() > 1 ? buffer.getWritePointer (1) : nullptr;
 
     float peak = 0.0f;
+    int scopeIndex = scopeWriteIndex.load (std::memory_order_relaxed);
     for (int i = 0; i < numSamples; ++i)
     {
         const float g = outputGain.getNextValue();
         left[i] = std::tanh (left[i] * g);
         peak = juce::jmax (peak, std::abs (left[i]));
+        float mono = left[i];
         if (right != nullptr)
         {
             right[i] = std::tanh (right[i] * g);
             peak = juce::jmax (peak, std::abs (right[i]));
+            mono = 0.5f * (left[i] + right[i]);
         }
+
+        scopeBuffer[(size_t) scopeIndex].store (mono, std::memory_order_relaxed);
+        scopeIndex = (scopeIndex + 1) % scopeSize;
     }
+    scopeWriteIndex.store (scopeIndex, std::memory_order_relaxed);
     outputLevel.store (peak);
 }
 

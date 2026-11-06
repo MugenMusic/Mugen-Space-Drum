@@ -54,6 +54,12 @@ public:
     std::atomic<float> outputLevel { 0.0f };   // nível de saída (anima o orbe)
     std::atomic<int> notePulse { 0 };          // conta notas tocadas (faz o orbe pulsar)
 
+    // Últimas amostras de saída (mono), para o anel de onda à volta do orbe.
+    // Só leitura na interface; atómicos para não haver bloqueios na thread de áudio.
+    static constexpr int scopeSize = 1024;
+    std::array<std::atomic<float>, scopeSize> scopeBuffer {};
+    std::atomic<int> scopeWriteIndex { 0 };
+
     PresetManager presetManager { parameters };
 
 private:

@@ -52,8 +52,8 @@ void OrbVisualizer::timerCallback()
 void OrbVisualizer::paint (juce::Graphics& g)
 {
     const auto bounds = getLocalBounds().toFloat();
-    const auto centre = bounds.getCentre().translated (0.0f, -bounds.getHeight() * 0.06f);
-    const float baseRadius = juce::jmin (bounds.getWidth(), bounds.getHeight()) * 0.30f;
+    const auto centre = bounds.getCentre();
+    const float baseRadius = juce::jmin (bounds.getWidth(), bounds.getHeight()) * 0.22f;
     const float breathe = 1.0f + 0.03f * std::sin (time * 1.3f) + 0.08f * pulse;
     const float radius = baseRadius * breathe;
 
@@ -68,6 +68,46 @@ void OrbVisualizer::paint (juce::Graphics& g)
                                    mainColour.withAlpha (0.0f), centre.x + radius * 2.2f, centre.y, true);
         g.setGradientFill (halo);
         g.fillEllipse (juce::Rectangle<float> (radius * 4.4f, radius * 4.4f).withCentre (centre));
+    }
+
+    // --- Anel de onda ao vivo (o som real à volta do orbe) ----------------------------
+    {
+        const int size = MugenSpaceDrumProcessor::scopeSize;
+        const int points = 256;
+        const int end = processor.scopeWriteIndex.load (std::memory_order_relaxed);
+        const float ringRadius = radius * 1.55f;
+        const float amplitude = radius * 0.40f;
+
+        juce::Path wave;
+        for (int i = 0; i <= points; ++i)
+        {
+            const int k = i % points;
+            const int index = (end - points * 2 + k * 2 + size * 4) % size;
+            const float v = juce::jlimit (-1.0f, 1.0f, processor.scopeBuffer[(size_t) index].load (std::memory_order_relaxed) * 2.2f);
+            const float a = juce::MathConstants<float>::twoPi * (float) k / (float) points - juce::MathConstants<float>::halfPi;
+            const auto p = centre.getPointOnCircumference (ringRadius + v * amplitude, a);
+            if (i == 0) wave.startNewSubPath (p);
+            else        wave.lineTo (p);
+        }
+        wave.closeSubPath();
+
+        juce::ColourGradient ringColour (MugenColours::violet.withAlpha (0.9f), centre.x - ringRadius, centre.y,
+                                         accent.withAlpha (0.9f), centre.x + ringRadius, centre.y, false);
+        g.setColour (accent.withAlpha (0.10f + 0.25f * glow));
+        g.strokePath (wave, juce::PathStrokeType (6.0f, juce::PathStrokeType::curved));
+        g.setGradientFill (ringColour);
+        g.strokePath (wave, juce::PathStrokeType (1.4f, juce::PathStrokeType::curved));
+
+        // Marcas finas à volta (mostrador)
+        for (int t = 0; t < 72; ++t)
+        {
+            const float a = juce::MathConstants<float>::twoPi * (float) t / 72.0f + time * 0.05f;
+            const float inner = ringRadius + amplitude + (t % 6 == 0 ? 6.0f : 9.0f);
+            const auto p1 = centre.getPointOnCircumference (inner, a);
+            const auto p2 = centre.getPointOnCircumference (ringRadius + amplitude + 12.0f, a);
+            g.setColour (MugenColours::textDim.withAlpha (t % 6 == 0 ? 0.45f : 0.18f));
+            g.drawLine ({ p1, p2 }, 1.0f);
+        }
     }
 
     // --- Partículas em órbita ---------------------------------------------------
@@ -131,31 +171,4 @@ void OrbVisualizer::paint (juce::Graphics& g)
         g.strokePath (lotus, juce::PathStrokeType (1.4f));
     }
 
-    // --- Onda de energia em baixo -----------------------------------------------
-    {
-        const float baseY = bounds.getBottom() - bounds.getHeight() * 0.12f;
-        for (int layer = 0; layer < 3; ++layer)
-        {
-            juce::Path wave;
-            const float amplitude = bounds.getHeight() * (0.015f + 0.06f * energy) * (1.0f - 0.25f * (float) layer);
-            for (float x = bounds.getX(); x <= bounds.getRight(); x += 3.0f)
-            {
-                const float u = (x - bounds.getX()) / bounds.getWidth();
-                const float envelope = std::sin (u * juce::MathConstants<float>::pi);
-                const float y = baseY + amplitude * envelope
-                              * (std::sin (u * 18.0f + time * (2.0f + (float) layer)) * 0.7f
-                                 + std::sin (u * 41.0f - time * 3.1f) * 0.3f);
-                if (x == bounds.getX())
-                    wave.startNewSubPath (x, y);
-                else
-                    wave.lineTo (x, y);
-            }
-
-            juce::ColourGradient line (MugenColours::violet.withAlpha (0.1f), bounds.getX(), baseY,
-                                       accent.withAlpha (0.1f), bounds.getRight(), baseY, false);
-            line.addColour (0.5, accent.withAlpha (0.55f + 0.4f * glow - 0.15f * (float) layer));
-            g.setGradientFill (line);
-            g.strokePath (wave, juce::PathStrokeType (layer == 0 ? 2.0f : 1.0f));
-        }
-    }
 }
