@@ -31,6 +31,7 @@ public:
 
     static const std::vector<Scale>& scales();
     static juce::StringArray scaleNames();
+    static const std::vector<std::pair<int, const char*>>& scaleGroups();   // títulos do menu
     static juce::StringArray rootNames()    { return { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" }; }
     static juce::StringArray mappingNames() { return { "Nearest", "White Keys" }; }
 

@@ -807,8 +807,9 @@ private:
         g.setGradientFill (juce::ColourGradient (m.colour.withAlpha (0.0f), tail, m.colour.withAlpha (0.28f * alpha), m.head, false));
         g.drawLine (line, m.thickness * 5.0f);
 
-        // Rasto fino
-        g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.0f), tail, juce::Colours::white.withAlpha (0.95f * alpha), m.head, false));
+        // Rasto fino (o núcleo puxa para branco, as pontas mantêm a cor)
+        const auto core = m.colour.interpolatedWith (juce::Colours::white, 0.55f);
+        g.setGradientFill (juce::ColourGradient (m.colour.withAlpha (0.0f), tail, core.withAlpha (0.95f * alpha), m.head, false));
         g.drawLine (line, m.thickness);
 
         // Cabeça luminosa
@@ -834,10 +835,19 @@ private:
             m.duration = 0.9f + random.nextFloat() * 0.7f;
             m.life = 0.0f;
 
-            const bool fireball = random.nextFloat() < 0.12f;
-            m.thickness = fireball ? 2.6f : 1.3f + random.nextFloat() * 0.6f;
-            const float hue = random.nextFloat();
-            m.colour = hue < 0.5f ? MugenColours::blue : (hue < 0.85f ? MugenColours::violet : juce::Colour (0xffbfefff));
+            const bool fireball = random.nextFloat() < 0.10f;
+            m.thickness = fireball ? 2.6f : 1.0f + random.nextFloat() * 0.8f;
+            if (fireball)
+                m.length *= 1.4f;
+
+            // Paleta: muitas brancas, e cores que vivem no plugin
+            const float pick = random.nextFloat();
+            if      (pick < 0.40f) m.colour = juce::Colour (0xfff4f1ff);   // branca
+            else if (pick < 0.58f) m.colour = MugenColours::blue;          // azul Mugen
+            else if (pick < 0.74f) m.colour = MugenColours::violet;        // violeta Mugen
+            else if (pick < 0.85f) m.colour = juce::Colour (0xff6ff3e0);   // turquesa (aurora)
+            else if (pick < 0.94f) m.colour = juce::Colour (0xffff7ad9);   // rosa nebulosa
+            else                   m.colour = juce::Colour (0xffffd27a);   // dourada (rara)
             m.alive = true;
             return;
         }
@@ -850,9 +860,12 @@ private:
 
         constexpr float dt = 1.0f / 60.0f;
 
-        // Em média uma estrela cadente a cada ~3 segundos (às vezes duas seguidas)
-        if (random.nextFloat() < dt / 3.0f)
+        // Em média ~1,2 estrelas por segundo, e de vez em quando uma pequena chuva
+        if (random.nextFloat() < dt * 1.2f)
             spawn();
+        if (random.nextFloat() < dt / 14.0f)
+            for (int i = 0; i < 4 + random.nextInt (4); ++i)
+                spawn();
 
         for (auto& m : meteors)
         {
@@ -869,7 +882,7 @@ private:
         }
     }
 
-    std::array<Meteor, 4> meteors;
+    std::array<Meteor, 14> meteors;
     std::vector<Glass> glass;
     juce::Random random;
     bool active = true;
@@ -1006,7 +1019,8 @@ private:
         // Ghost Notes e expressão ao centro
         const bool ghostOn = processor.parameters.getRawParameterValue (ParamIDs::ghostOn)->load() > 0.5f;
         const bool ghostPlaying = processor.ghostActive.load();
-        const auto pill = juce::Rectangle<float> (60.0f, 18.0f).withCentre ({ (float) bar.getCentreX() - 46.0f, (float) bar.getCentreY() });
+        const float cx = (float) bar.getCentreX();
+        const auto pill = juce::Rectangle<float> (cx - 84.0f, (float) bar.getCentreY() - 9.0f, 56.0f, 18.0f);
         if (ghostPlaying)
         {
             g.setColour (MugenColours::violet.withAlpha (0.25f + 0.25f * pulse));
@@ -1019,10 +1033,10 @@ private:
         g.drawText ("GHOST", pill, juce::Justification::centred);
 
         const float expr = processor.expressionLevel.load();
-        const auto meter = juce::Rectangle<float> (70.0f, 4.0f).withCentre ({ (float) bar.getCentreX() + 52.0f, (float) bar.getCentreY() });
+        const auto label = juce::Rectangle<float> (cx - 18.0f, (float) bar.getY(), 34.0f, (float) bar.getHeight());
+        const auto meter = juce::Rectangle<float> (cx + 20.0f, (float) bar.getCentreY() - 2.0f, 58.0f, 4.0f);
         g.setColour (MugenColours::textDim);
-        g.drawText ("EXPR", meter.withX (meter.getX() - 36.0f).withWidth (32.0f).withHeight (18.0f).withCentre ({ meter.getX() - 20.0f, meter.getCentreY() }),
-                    juce::Justification::centredRight);
+        g.drawText ("EXPR", label, juce::Justification::centredLeft);
         g.setColour (MugenColours::knobTrack);
         g.fillRoundedRectangle (meter, 2.0f);
         if (expr > 0.005f)
@@ -1067,18 +1081,25 @@ private:
                 const float size = 14.0f + 10.0f * closeness;
 
                 const auto& entry = entries[(size_t) entryIndex];
-                const auto textArea = juce::Rectangle<float> (x - 120.0f, area.getY() + 10.0f, 240.0f, 34.0f);
+                const float boxWidth = closeness > 0.5f ? 330.0f : 200.0f;
+                const auto textArea = juce::Rectangle<float> (x - boxWidth * 0.5f, area.getY() + 10.0f, boxWidth, 34.0f);
+
+                // Nomes longos encolhem para caber inteiros
+                float fittedSize = size;
+                while (fittedSize > 12.0f
+                       && juce::GlyphArrangement::getStringWidth (font (fittedSize, closeness > 0.5f, 0.04f), entry.name) > boxWidth - 12.0f)
+                    fittedSize -= 0.5f;
 
                 if (closeness > 0.05f)
                 {
                     g.setColour (MugenColours::violet.withAlpha (0.22f * closeness));
-                    g.setFont (font (size, false, 0.04f));
-                    g.drawText (entry.name, textArea.translated (0.0f, 1.5f).expanded (2.0f, 0.0f), juce::Justification::centred, true);
+                    g.setFont (font (fittedSize, false, 0.04f));
+                    g.drawText (entry.name, textArea.translated (0.0f, 1.5f).expanded (2.0f, 0.0f), juce::Justification::centred, false);
                 }
 
                 g.setColour ((closeness > 0.5f ? juce::Colours::white : MugenColours::textDim).withAlpha (alpha));
-                g.setFont (font (size, closeness > 0.5f, 0.04f));
-                g.drawText (entry.name, textArea, juce::Justification::centred, true);
+                g.setFont (font (fittedSize, closeness > 0.5f, 0.04f));
+                g.drawText (entry.name, textArea, juce::Justification::centred, false);
 
                 g.setColour (MugenColours::violet.interpolatedWith (MugenColours::blue, 0.5f).withAlpha (alpha * (0.4f + 0.6f * closeness)));
                 g.setFont (font (9.5f, true, 0.25f));
@@ -1087,6 +1108,15 @@ private:
         }
 
         g.restoreState();
+
+        // As pontas do carrossel desvanecem no ecrã (os vizinhos "espreitam")
+        for (int side : { -1, 1 })
+        {
+            const float edge = side < 0 ? area.getX() : area.getRight();
+            const float inner = edge - (float) side * 86.0f;
+            g.setGradientFill (juce::ColourGradient (MugenColours::screen, edge, 0.0f, MugenColours::screen.withAlpha (0.0f), inner, 0.0f, false));
+            g.fillRect (juce::Rectangle<float> (juce::jmin (edge, inner), area.getY(), 86.0f, area.getHeight()));
+        }
 
         // Setas laterais
         for (int side : { -1, 1 })
@@ -1129,12 +1159,21 @@ private:
         }
         total += gap * (float) (chips.size() - 1);
 
+        // Se não couber tudo (escalas com nomes longos), tira a etiqueta do corpo
+        if (total > (float) getWidth() - 24.0f)
+        {
+            total -= widths[1] + gap;
+            widths[1] = -1.0f;
+        }
+
         float x = (float) getWidth() * 0.5f - total * 0.5f;
         const float y = (float) getHeight() - 46.0f;
 
         g.setFont (chipFont);
         for (int i = 0; i < chips.size(); ++i)
         {
+            if (widths[(size_t) i] < 0.0f)
+                continue;
             const auto chip = juce::Rectangle<float> (x, y, widths[(size_t) i], height);
             g.setColour (juce::Colour (0xff141230));
             g.fillRoundedRectangle (chip, height * 0.5f);
@@ -1211,7 +1250,19 @@ public:
         makeSelector (divisionSelector, DelayDivisions::names(),     ParamIDs::delayDivision);
         makeSelector (reverbSelector,   ReverbEngine::typeNames(),   ParamIDs::reverbType);
         makeSelector (rootSelector,     ScaleEngine::rootNames(),    ParamIDs::scaleRoot);
-        makeSelector (scaleSelector,    ScaleEngine::scaleNames(),   ParamIDs::scaleType);
+        {
+            // Menu das escalas com títulos por família
+            const auto names = ScaleEngine::scaleNames();
+            const auto& groups = ScaleEngine::scaleGroups();
+            for (int i = 0; i < names.size(); ++i)
+            {
+                for (const auto& group : groups)
+                    if (group.first == i)
+                        scaleSelector.box.addSectionHeading (group.second);
+                scaleSelector.box.addItem (names[i], i + 1);
+            }
+            scaleSelector.attachment = std::make_unique<ComboBoxAttachment> (processor.parameters, ParamIDs::scaleType, scaleSelector.box);
+        }
         makeSelector (mappingSelector,  ScaleEngine::mappingNames(), ParamIDs::scaleMapping);
         makeToggle (syncButton,   "SYNC",   ParamIDs::delaySync);
         makeToggle (freezeButton, "FREEZE", ParamIDs::freeze);

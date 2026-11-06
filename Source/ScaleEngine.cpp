@@ -4,19 +4,71 @@ const std::vector<ScaleEngine::Scale>& ScaleEngine::scales()
 {
     // Escalas típicas de handpan e escalas pentatónicas.
     static const std::vector<Scale> list {
-        { "Chromatic",        { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 } },
-        { "Celtic Minor",     { 0, 2, 3, 5, 7, 10 } },
-        { "Kurd",             { 0, 2, 3, 5, 7, 8, 10 } },
-        { "Integral",         { 0, 2, 3, 7, 8, 10 } },
-        { "Pygmy",            { 0, 2, 3, 7, 10 } },
-        { "Hijaz",            { 0, 1, 4, 5, 7, 8, 10 } },
-        { "Aegean",           { 0, 4, 6, 7, 11 } },
-        { "Akebono",          { 0, 2, 3, 7, 8 } },
-        { "Major Pentatonic", { 0, 2, 4, 7, 9 } },
-        { "Minor Pentatonic", { 0, 3, 5, 7, 10 } },
-        { "Major",            { 0, 2, 4, 5, 7, 9, 11 } }
+        // Atenção: só acrescentar no fim — os presets e os projetos guardam o número da escala.
+        { "Chromatic",          { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 } },
+        // Handpan
+        { "Celtic Minor",       { 0, 2, 3, 5, 7, 10 } },
+        { "Kurd",               { 0, 2, 3, 5, 7, 8, 10 } },
+        { "Integral",           { 0, 2, 3, 7, 8, 10 } },
+        { "Pygmy",              { 0, 2, 3, 7, 10 } },
+        { "Hijaz",              { 0, 1, 4, 5, 7, 8, 10 } },
+        { "Aegean",             { 0, 4, 6, 7, 11 } },
+        { "Akebono",            { 0, 2, 3, 7, 8 } },
+        // Pentatónicas
+        { "Major Pentatonic",   { 0, 2, 4, 7, 9 } },
+        { "Minor Pentatonic",   { 0, 3, 5, 7, 10 } },
+        // Maior e modos (como no Ableton Live)
+        { "Major",              { 0, 2, 4, 5, 7, 9, 11 } },
+        { "Minor",              { 0, 2, 3, 5, 7, 8, 10 } },
+        { "Dorian",             { 0, 2, 3, 5, 7, 9, 10 } },
+        { "Phrygian",           { 0, 1, 3, 5, 7, 8, 10 } },
+        { "Lydian",             { 0, 2, 4, 6, 7, 9, 11 } },
+        { "Mixolydian",         { 0, 2, 4, 5, 7, 9, 10 } },
+        { "Locrian",            { 0, 1, 3, 5, 6, 8, 10 } },
+        // Harmónicas, melódicas e exóticas
+        { "Harmonic Minor",     { 0, 2, 3, 5, 7, 8, 11 } },
+        { "Melodic Minor",      { 0, 2, 3, 5, 7, 9, 11 } },
+        { "Harmonic Major",     { 0, 2, 4, 5, 7, 8, 11 } },
+        { "Phrygian Dominant",  { 0, 1, 4, 5, 7, 8, 10 } },
+        { "Dorian #4",          { 0, 2, 3, 6, 7, 9, 10 } },
+        { "Lydian Dominant",    { 0, 2, 4, 6, 7, 9, 10 } },
+        { "Lydian Augmented",   { 0, 2, 4, 6, 8, 9, 11 } },
+        { "Super Locrian",      { 0, 1, 3, 4, 6, 8, 10 } },
+        { "Hungarian Minor",    { 0, 2, 3, 6, 7, 8, 11 } },
+        { "Bhairav",            { 0, 1, 4, 5, 7, 8, 11 } },
+        // Simétricas e blues
+        { "Whole Tone",         { 0, 2, 4, 6, 8, 10 } },
+        { "Half-Whole Dim.",    { 0, 1, 3, 4, 6, 7, 9, 10 } },
+        { "Whole-Half Dim.",    { 0, 2, 3, 5, 6, 8, 9, 11 } },
+        { "Minor Blues",        { 0, 3, 5, 6, 7, 10 } },
+        { "Major Blues",        { 0, 2, 3, 4, 7, 9 } },
+        { "8-Tone Spanish",     { 0, 1, 3, 4, 5, 6, 8, 10 } },
+        // Do mundo
+        { "Hirajoshi",          { 0, 2, 3, 7, 8 } },
+        { "In-Sen",             { 0, 1, 5, 7, 10 } },
+        { "Iwato",              { 0, 1, 5, 6, 10 } },
+        { "Kumoi",              { 0, 2, 3, 7, 9 } },
+        { "Pelog Selisir",      { 0, 1, 3, 7, 8 } },
+        { "Pelog Tembung",      { 0, 1, 5, 7, 8 } },
+        { "Egyptian",           { 0, 2, 5, 7, 10 } },
+        { "Oxalis",             { 0, 2, 3, 5, 7, 9 } }
     };
     return list;
+}
+
+const std::vector<std::pair<int, const char*>>& ScaleEngine::scaleGroups()
+{
+    // Títulos do menu das escalas: aparecem antes da escala com este número.
+    static const std::vector<std::pair<int, const char*>> groups {
+        { 0,  "BASIC" },
+        { 1,  "HANDPAN" },
+        { 8,  "PENTATONIC" },
+        { 10, "MAJOR & MODES" },
+        { 17, "HARMONIC & EXOTIC" },
+        { 27, "SYMMETRIC & BLUES" },
+        { 33, "WORLD" }
+    };
+    return groups;
 }
 
 juce::StringArray ScaleEngine::scaleNames()
