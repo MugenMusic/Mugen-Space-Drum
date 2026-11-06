@@ -1,5 +1,18 @@
 # Changelog — Mugen Space Drum
 
+## v0.7.1 — Mais escalas e chuva de estrelas
+
+- **41 escalas** (antes 11), num menu organizado por famílias:
+  Basic · Handpan · Pentatonic · Major & Modes (Minor, Dorian, Phrygian, Lydian, Mixolydian, Locrian) ·
+  Harmonic & Exotic (Harmonic/Melodic Minor, Harmonic Major, Phrygian Dominant, Dorian #4, Lydian Dominant,
+  Lydian Augmented, Super Locrian, Hungarian Minor, Bhairav) · Symmetric & Blues (Whole Tone, Half-Whole Dim.,
+  Whole-Half Dim., Minor/Major Blues, 8-Tone Spanish) · World (Hirajoshi, In-Sen, Iwato, Kumoi, Pelog Selisir,
+  Pelog Tembung, Egyptian, Oxalis). As escalas antigas mantêm o número: presets e projetos não mudam.
+- **Estrelas cadentes**: muitas mais (~1 por segundo e pequenas chuvas de vez em quando), coloridas —
+  brancas, azul e violeta Mugen, turquesa de aurora, rosa nebulosa e, raras, douradas.
+- Acertos: pastilha GHOST já não tapa o EXPR; nomes de presets longos cabem inteiros no carrossel;
+  pontas do carrossel desvanecem; etiquetas ajustam-se a escalas com nomes longos.
+
 ## v0.7.0 — Expressão, Ghost Notes e estrelas cadentes
 
 - **Velocidade e expressão**: novo knob *Velocity* (sensibilidade). Tocar suave dá um som abafado e "fofinho"
