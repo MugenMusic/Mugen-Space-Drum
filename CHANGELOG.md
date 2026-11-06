@@ -1,5 +1,20 @@
 # Changelog — Mugen Space Drum
 
+## v0.8.1 — Acabamento premium
+
+- **Logótipo MUGEN 3D**: letras esculpidas com extrusão em 16 camadas (profundidade real), face cromada
+  com horizonte refletido, bisel de luz, sombra projetada, aura suave, um brilho que atravessa as letras
+  a cada ~7 segundos e cintilações nas pontas. Muda de cor com cada tema.
+- **Emblemas de preset**: no centro do orbe, cada preset tem o seu emblema de geometria sagrada, próprio
+  da categoria e único para cada preset (orientação e número de pétalas/pontas variam):
+  Celestial (estrela {n/k} com órbitas e planetas), Organic (lótus de duas camadas), Rhythmic (pele de
+  tambor que pulsa, hexagrama), Atmosphere (flor da vida e anel de vento), Crystal (hexágonos com
+  facetas e cintilações), Sequences (espiral de ouro com onda a viajar), User (mandala).
+- **Transição etérea** ao mudar de preset: o emblema antigo dissolve-se a expandir, o novo desenha-se
+  do centro, com um clarão suave.
+- **Orbe novo**: esfera de vidro com aro de luz (Fresnel), reflexos e cáustica; raios de luz volumétricos
+  a rodar devagar; poeira de luz a subir (mais quando há som); bloom em todos os traços.
+
 ## v0.8.0 — Arp, Sequences e temas
 
 - **Modo Arp** nas Ghost Notes: novo seletor *Mode* com **Ghost** (generativo), **Arp Up**, **Arp Down** e **Arp Up/Down**.
