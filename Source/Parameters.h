@@ -53,6 +53,7 @@ namespace ParamIDs
     // Ghost Notes (sequenciador generativo)
     inline constexpr const char* ghostOn       = "ghostOn";
     inline constexpr const char* ghostRate     = "ghostRate";
+    inline constexpr const char* ghostMode     = "ghostMode";
     inline constexpr const char* ghostDensity  = "ghostDensity";
     inline constexpr const char* ghostRange    = "ghostRange";
 

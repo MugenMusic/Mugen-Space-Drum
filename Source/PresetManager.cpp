@@ -28,7 +28,12 @@ namespace
         // Escala
         int root, scale, mapping, octave;
         float tune, volume;
+        // Ghost Notes / Arp (os presets antigos ficam com tudo desligado)
+        bool ghost = false; int ghostMode = 0; int ghostRate = 2; float ghostDensity = 0.55f; int ghostRange = 2;
     };
+
+    enum GhostMode { ghostWalk = 0, arpUp, arpDown, arpUpDown };
+    enum GhostRate { r4 = 0, r8T, r8, r16T, r16 };
 
     //  nome                  categoria     char  bright decay reson  sample blend   dMix sync div  fb     rev        rMix  rSize shim   mDep mRate width  root scale        map oct  tune volume
     const FactoryPreset factory[] = {
@@ -52,6 +57,15 @@ namespace
 
         { "Crystal Garden",   "Crystal",    0.95f, 0.65f, 5.0f, 0.55f, felt,  0.20f, 0.30f, true, d8,  0.45f, hall,      0.40f, 0.75f, 0.35f, 0.30f, 0.20f, 1.40f, G, major,       0, 0, 0.0f, -7.0f },
         { "Glass Moon",       "Crystal",    1.00f, 0.50f, 8.0f, 0.75f, air,   0.30f, 0.25f, true, d4D, 0.50f, cathedral, 0.50f, 0.90f, 0.50f, 0.35f, 0.09f, 1.50f, B, minorPenta,  0, 0, 0.0f, -7.0f },
+
+        // --- Sequences: Ghost Notes e Arp já ligados (segura uma nota ou um acorde) ---------
+        //  nome                  categoria     char  bright decay reson  sample blend   dMix sync div  fb     rev        rMix  rSize shim   mDep mRate width  root scale        map oct  tune volume  ghost mode       rate  dens   range
+        { "Dream Sequencer",  "Sequences",  0.50f, 0.42f, 4.5f, 0.70f, shell, 0.35f, 0.25f, true, d8D, 0.45f, deepSpace, 0.45f, 0.80f, 0.40f, 0.35f, 0.10f, 1.40f, D, celticMinor, 0, 0, 0.0f, -7.0f, true, ghostWalk, r8,   0.55f, 2 },
+        { "Zen Garden Walk",  "Sequences",  0.15f, 0.30f, 5.0f, 0.55f, felt,  0.45f, 0.15f, true, d4,  0.35f, hall,      0.40f, 0.70f, 0.15f, 0.20f, 0.08f, 1.20f, E, 33,          0, 0, 0.0f, -6.0f, true, ghostWalk, r4,   0.70f, 2 },
+        { "Starfall",         "Sequences",  0.90f, 0.60f, 6.0f, 0.75f, air,   0.25f, 0.30f, true, d8D, 0.50f, deepSpace, 0.55f, 0.95f, 0.65f, 0.45f, 0.12f, 1.70f, C, aegean,      0, 1, 0.0f, -8.0f, true, ghostWalk, r16,  0.45f, 3 },
+        { "Phrygian Caravan", "Sequences",  0.60f, 0.50f, 3.5f, 0.55f, hand,  0.40f, 0.30f, true, d8T, 0.40f, cathedral, 0.35f, 0.65f, 0.10f, 0.25f, 0.18f, 1.30f, E, 13,          0, 0, 0.0f, -6.0f, true, ghostWalk, r8T,  0.65f, 2 },
+        { "Crystal Arpeggio", "Sequences",  1.00f, 0.60f, 5.0f, 0.60f, felt,  0.20f, 0.30f, true, d8,  0.45f, hall,      0.40f, 0.80f, 0.40f, 0.30f, 0.15f, 1.50f, A, minorPenta,  0, 0, 0.0f, -8.0f, true, arpUpDown, r16,  1.00f, 2 },
+        { "Lunar Steps",      "Sequences",  0.40f, 0.40f, 6.0f, 0.80f, air,   0.40f, 0.20f, true, d4D, 0.55f, deepSpace, 0.60f, 1.00f, 0.55f, 0.45f, 0.06f, 1.80f, F, 35,          0, 0, 0.0f, -7.0f, true, arpUp,     r8,   0.85f, 2 },
     };
 
     constexpr int numFactory = (int) (sizeof (factory) / sizeof (factory[0]));
@@ -66,7 +80,7 @@ PresetManager::PresetManager (juce::AudioProcessorValueTreeState& state)
 
 juce::StringArray PresetManager::categoryOrder()
 {
-    return { "Celestial", "Organic", "Rhythmic", "Atmosphere", "Crystal", "User" };
+    return { "Celestial", "Organic", "Rhythmic", "Atmosphere", "Crystal", "Sequences", "User" };
 }
 
 juce::File PresetManager::getUserPresetFolder()
@@ -155,6 +169,12 @@ void PresetManager::applyFactoryPreset (int index)
     set (ParamIDs::octave,        (float) p.octave);
     set (ParamIDs::fineTune,      p.tune);
     set (ParamIDs::volume,        p.volume);
+
+    set (ParamIDs::ghostOn,       p.ghost ? 1.0f : 0.0f);
+    set (ParamIDs::ghostMode,     (float) p.ghostMode);
+    set (ParamIDs::ghostRate,     (float) p.ghostRate);
+    set (ParamIDs::ghostDensity,  p.ghostDensity);
+    set (ParamIDs::ghostRange,    (float) p.ghostRange);
 }
 
 void PresetManager::load (int entryIndex)

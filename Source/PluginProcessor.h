@@ -98,6 +98,7 @@ private:
     std::atomic<float>* pressureAmount = nullptr;
     std::atomic<float>* ghostOn        = nullptr;
     std::atomic<float>* ghostRate      = nullptr;
+    std::atomic<float>* ghostMode      = nullptr;
     std::atomic<float>* ghostDensity   = nullptr;
     std::atomic<float>* ghostRange     = nullptr;
 

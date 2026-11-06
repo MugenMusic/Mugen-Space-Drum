@@ -182,6 +182,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     // --- Ghost Notes ----------------------------------------------------------
     layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { ParamIDs::ghostOn, 1 },
                                                             "Ghost Notes", false));
+    layout.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { ParamIDs::ghostMode, 1 },
+                                                              "Ghost Mode", GhostEngine::modeNames(), 0));
     layout.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { ParamIDs::ghostRate, 1 },
                                                               "Ghost Rate", GhostEngine::rateNames(), 2));
     layout.add (makeParam (ParamIDs::ghostDensity, "Ghost Density",

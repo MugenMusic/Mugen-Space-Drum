@@ -33,6 +33,7 @@ MugenSpaceDrumProcessor::MugenSpaceDrumProcessor()
     pressureAmount = parameters.getRawParameterValue (ParamIDs::pressureAmount);
     ghostOn        = parameters.getRawParameterValue (ParamIDs::ghostOn);
     ghostRate      = parameters.getRawParameterValue (ParamIDs::ghostRate);
+    ghostMode      = parameters.getRawParameterValue (ParamIDs::ghostMode);
     ghostDensity   = parameters.getRawParameterValue (ParamIDs::ghostDensity);
     ghostRange     = parameters.getRawParameterValue (ParamIDs::ghostRange);
     reverbType    = parameters.getRawParameterValue (ParamIDs::reverbType);
@@ -152,6 +153,7 @@ void MugenSpaceDrumProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     // --- Ghost Notes: padrões generativos dentro da escala ----------------------------
     GhostEngine::Settings ghost;
     ghost.enabled      = ghostOn->load() > 0.5f;
+    ghost.mode         = juce::roundToInt (ghostMode->load());
     ghost.beatsPerStep = GhostEngine::rateBeats (juce::roundToInt (ghostRate->load()));
     ghost.density      = ghostDensity->load();
     ghost.rangeOctaves = juce::roundToInt (ghostRange->load());

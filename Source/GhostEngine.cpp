@@ -17,6 +17,68 @@ void GhostEngine::reset()
     freeRunBeats = 0.0;
     walkNote = -1;
     lastStepIndex = -1;
+    arpCounter = 0;
+}
+
+void GhostEngine::addNote (juce::MidiBuffer& out, int note, float velocity, int samplePosition)
+{
+    out.addEvent (juce::MidiMessage::noteOn (ghostChannel, note, velocity), samplePosition);
+
+    // Note Off no fim do passo (as vozes continuam a ressoar naturalmente)
+    const int gate = juce::jmax (1, (int) (sampleRate * 0.12));
+    for (auto& p : pending)
+    {
+        if (p.note < 0)
+        {
+            p.note = note;
+            p.samplesLeft = samplePosition + gate;
+            break;
+        }
+    }
+}
+
+void GhostEngine::triggerArpStep (juce::MidiBuffer& out, int samplePosition, const Settings& settings)
+{
+    // Notas seguradas, da mais grave para a mais aguda, repetidas por oitavas
+    int sequence[128];
+    int length = 0;
+    const int octaves = juce::jlimit (1, 3, settings.rangeOctaves);
+    for (int octave = 0; octave < octaves; ++octave)
+        for (int n = 0; n < 128; ++n)
+            if (heldVelocity[(size_t) n] > 0.0f && n + 12 * octave <= 127 && length < 128)
+                sequence[length++] = n + 12 * octave;
+
+    if (length == 0)
+        return;
+
+    int index = 0;
+    const int step = arpCounter++;
+    if (settings.mode == 1)                 // Up
+        index = step % length;
+    else if (settings.mode == 2)            // Down
+        index = length - 1 - (step % length);
+    else                                    // Up/Down (sem repetir as pontas)
+    {
+        const int period = juce::jmax (1, 2 * length - 2);
+        const int p = step % period;
+        index = p < length ? p : period - p;
+    }
+
+    // Density também cria pausas no arpejo (sem perder o lugar)
+    if (random.nextFloat() > settings.density)
+        return;
+
+    const int note = sequence[juce::jlimit (0, length - 1, index)];
+    const int base = note % 12;
+    float strength = 0.0f;
+    for (int octave = 0; octave <= 10; ++octave)
+        if (base + 12 * octave < 128)
+            strength = juce::jmax (strength, heldVelocity[(size_t) (base + 12 * octave)]);
+
+    const bool accent = (step % length) == 0;
+    const float velocity = juce::jlimit (0.08f, 1.0f, (strength > 0.0f ? strength : 0.7f)
+                                                       * (accent ? 0.95f : 0.65f + 0.2f * random.nextFloat()));
+    addNote (out, note, velocity, samplePosition);
 }
 
 int GhostEngine::buildScaleNotes (int lowest, int highest, const Settings& settings)
@@ -30,7 +92,16 @@ int GhostEngine::buildScaleNotes (int lowest, int highest, const Settings& setti
 
 void GhostEngine::triggerStep (juce::MidiBuffer& out, int samplePosition, const Settings& settings)
 {
-    if (numHeld == 0 || random.nextFloat() > settings.density)
+    if (numHeld == 0)
+        return;
+
+    if (settings.mode > 0)
+    {
+        triggerArpStep (out, samplePosition, settings);
+        return;
+    }
+
+    if (random.nextFloat() > settings.density)
         return;
 
     // Uma das notas seguradas serve de âncora
@@ -76,19 +147,7 @@ void GhostEngine::triggerStep (juce::MidiBuffer& out, int samplePosition, const 
     const float humanize = 0.55f + 0.35f * random.nextFloat();
     const float velocity = juce::jlimit (0.08f, 1.0f, base * humanize);
 
-    out.addEvent (juce::MidiMessage::noteOn (ghostChannel, walkNote, velocity), samplePosition);
-
-    // Note Off no fim do passo (as vozes continuam a ressoar naturalmente)
-    const int gate = juce::jmax (1, (int) (sampleRate * 0.12));
-    for (auto& p : pending)
-    {
-        if (p.note < 0)
-        {
-            p.note = walkNote;
-            p.samplesLeft = samplePosition + gate;
-            break;
-        }
-    }
+    addNote (out, walkNote, velocity, samplePosition);
 }
 
 void GhostEngine::flushNoteOffs (juce::MidiBuffer& out, int numSamples)
@@ -170,6 +229,7 @@ void GhostEngine::process (juce::MidiBuffer& midi, int numSamples, const Setting
         // Sem notas seguradas: o próximo toque começa logo no passo seguinte
         lastStepIndex = -1;
         walkNote = -1;
+        arpCounter = 0;
         freeRunBeats = 0.0;
     }
 

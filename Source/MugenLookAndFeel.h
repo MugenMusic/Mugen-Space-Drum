@@ -1,6 +1,8 @@
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <juce_data_structures/juce_data_structures.h>
+#include <iterator>
 
 // ==============================================================================
 //  Identidade visual Mugen (v0.6.1)
@@ -9,27 +11,114 @@
 // ==============================================================================
 namespace MugenColours
 {
-    const juce::Colour backgroundTop    { 0xff15112b };
-    const juce::Colour backgroundBottom { 0xff07060f };
-    const juce::Colour body             { 0xff111020 };
-    const juce::Colour sidebar          { 0xff0c0b17 };
-    const juce::Colour topBar           { 0xff08070f };
-    const juce::Colour panel            { 0xff17152b };
-    const juce::Colour panelHeader      { 0xff1e1b38 };
-    const juce::Colour panelOutline     { 0xff2c2852 };
-    const juce::Colour screen           { 0xff07060e };
-    const juce::Colour violet           { 0xff9b6bff };
-    const juce::Colour blue             { 0xff4fc3ff };
-    const juce::Colour text             { 0xffe6e1ff };
-    const juce::Colour textDim          { 0xff8f88b8 };
-    const juce::Colour knobBody         { 0xff1b1736 };
-    const juce::Colour knobTrack        { 0xff2a2650 };
+    // Cores ativas. Mudam quando se escolhe outro tema (ver MugenTheme).
+    inline juce::Colour backgroundTop    { 0xff15112b };
+    inline juce::Colour backgroundBottom { 0xff07060f };
+    inline juce::Colour body             { 0xff111020 };
+    inline juce::Colour sidebar          { 0xff0c0b17 };
+    inline juce::Colour topBar           { 0xff08070f };
+    inline juce::Colour panel            { 0xff17152b };
+    inline juce::Colour panelHeader      { 0xff1e1b38 };
+    inline juce::Colour panelOutline     { 0xff2c2852 };
+    inline juce::Colour screen           { 0xff07060e };
+    inline juce::Colour violet           { 0xff9b6bff };   // acento principal
+    inline juce::Colour blue             { 0xff4fc3ff };   // acento secundário
+    inline juce::Colour text             { 0xffe6e1ff };
+    inline juce::Colour textDim          { 0xff8f88b8 };
+    inline juce::Colour knobBody         { 0xff1b1736 };
+    inline juce::Colour knobTrack        { 0xff2a2650 };
+    inline juce::Colour panelTop         { 0xff1a1831 };
+    inline juce::Colour panelBottom      { 0xff121024 };
+    inline juce::Colour headerHighlight  { 0xff25214a };
+    inline juce::Colour bandA            { 0xff2a1c6b };   // faixa do cabeçalho (esquerda)
+    inline juce::Colour bandB            { 0xff17327a };   // faixa do cabeçalho (direita)
+    inline juce::Colour chip             { 0xff141230 };
+    inline juce::Colour keyWhite         { 0xffdcd8f2 };
+    inline juce::Colour keyBlack         { 0xff15132a };
+    inline juce::Colour keyLine          { 0xff3a3370 };
+    inline juce::Colour listBackground   { 0xff0a0914 };
+    inline juce::Colour displayEdge      { 0xff3b3577 };
+    inline juce::Colour starA            { 0xff6ff3e0 };   // cores extra das estrelas cadentes
+    inline juce::Colour starB            { 0xffff7ad9 };
+    inline juce::Colour starC            { 0xffffd27a };
+}
+
+// ==============================================================================
+//  Temas do Mugen Space Drum
+//   0 Mugen Nebula    – violeta e azul, a identidade original
+//   1 Aurora Borealis – noite polar, cortinas de aurora esmeralda e ciano
+//   2 Solar Eclipse   – sol negro com coroa dourada e brasas de coral
+//   3 Sakura Moon     – noite de cerejeiras, rosa sakura e prata de lua
+//  O tema é uma preferência tua: fica guardado no Mac e vale para todos os projetos.
+// ==============================================================================
+namespace MugenTheme
+{
+    enum Id { nebula = 0, aurora, eclipse, sakura, numThemes };
+
+    inline juce::StringArray names() { return { "Mugen Nebula", "Aurora Borealis", "Solar Eclipse", "Sakura Moon" }; }
+
+    inline int& currentRef() { static int current = nebula; return current; }
+    inline int current() { return currentRef(); }
+
+    inline void apply (int id)
+    {
+        using namespace MugenColours;
+        id = juce::jlimit (0, numThemes - 1, id);
+        currentRef() = id;
+
+        struct T { juce::uint32 c[29]; };
+        static const T themes[] = {
+            // bgTop     bgBottom    body        sidebar     topBar      panel       panelHdr    outline     screen      accentA     accentB     text        textDim     knobBody    knobTrack   panelTop    panelBot    hdrHi       bandA       bandB       chip        keyWhite    keyBlack    keyLine     listBg      dispEdge    starA       starB       starC
+            {{ 0xff15112b, 0xff07060f, 0xff111020, 0xff0c0b17, 0xff08070f, 0xff17152b, 0xff1e1b38, 0xff2c2852, 0xff07060e, 0xff9b6bff, 0xff4fc3ff, 0xffe6e1ff, 0xff8f88b8, 0xff1b1736, 0xff2a2650, 0xff1a1831, 0xff121024, 0xff25214a, 0xff2a1c6b, 0xff17327a, 0xff141230, 0xffdcd8f2, 0xff15132a, 0xff3a3370, 0xff0a0914, 0xff3b3577, 0xff6ff3e0, 0xffff7ad9, 0xffffd27a }},
+            {{ 0xff0b1a24, 0xff040a0f, 0xff08141b, 0xff061017, 0xff040b10, 0xff0e1f29, 0xff132a36, 0xff1f4250, 0xff030a0e, 0xff3ff2b0, 0xff52d6ff, 0xffdffbf4, 0xff7fa8a8, 0xff102530, 0xff1c3a45, 0xff11232e, 0xff0a1820, 0xff173441, 0xff0b3d45, 0xff16295e, 0xff0c2129, 0xffd6f3ee, 0xff0b1c22, 0xff2a5560, 0xff050e13, 0xff2a6a6a, 0xffa88bff, 0xffff8fc8, 0xfffff1a8 }},
+            {{ 0xff1a1210, 0xff080504, 0xff120c0a, 0xff0d0907, 0xff070504, 0xff1b1310, 0xff261a14, 0xff4a3020, 0xff060403, 0xffffb547, 0xffff6a4d, 0xfffff1e0, 0xffb39a85, 0xff22170f, 0xff3a2618, 0xff1f1611, 0xff140d0a, 0xff33221a, 0xff2a1206, 0xff5a240a, 0xff1e130d, 0xfff3e6d6, 0xff1a110c, 0xff5a3a22, 0xff0a0605, 0xff7a4a22, 0xff9ad8ff, 0xffffe2a8, 0xffff9e7a }},
+            {{ 0xff1d1226, 0xff0a0610, 0xff150e1c, 0xff0f0a15, 0xff09060d, 0xff1c1325, 0xff271a33, 0xff4a3060, 0xff08050c, 0xffff8fc8, 0xffc7d2ff, 0xfffdeaf5, 0xffb293ad, 0xff21162b, 0xff3a2648, 0xff21162b, 0xff150e1c, 0xff33213f, 0xff3d1a45, 0xff23285e, 0xff1c1226, 0xfff5e3ee, 0xff1a1020, 0xff5a3a6a, 0xff0b0710, 0xff7a4a80, 0xffffd1e8, 0xffb9f0ff, 0xffffe9b0 }},
+        };
+
+        const auto& t = themes[id].c;
+        juce::Colour* targets[] = { &backgroundTop, &backgroundBottom, &body, &sidebar, &topBar, &panel, &panelHeader, &panelOutline,
+                                    &screen, &violet, &blue, &text, &textDim, &knobBody, &knobTrack, &panelTop, &panelBottom,
+                                    &headerHighlight, &bandA, &bandB, &chip, &keyWhite, &keyBlack, &keyLine, &listBackground,
+                                    &displayEdge, &starA, &starB, &starC };
+        for (size_t i = 0; i < std::size (targets); ++i)
+            *targets[i] = juce::Colour (t[i]);
+    }
+
+    /** Ficheiro de preferências: ~/Library/Application Support/Mugen/MugenSpaceDrum.settings */
+    inline std::unique_ptr<juce::PropertiesFile> openSettings()
+    {
+        juce::PropertiesFile::Options options;
+        options.applicationName = "MugenSpaceDrum";
+        options.filenameSuffix = ".settings";
+        options.folderName = "Mugen";
+        options.osxLibrarySubFolder = "Application Support";
+        return std::make_unique<juce::PropertiesFile> (options);
+    }
+
+    inline int loadSaved()
+    {
+        auto settings = openSettings();
+        return juce::jlimit (0, numThemes - 1, settings->getIntValue ("theme", nebula));
+    }
+
+    inline void save (int id)
+    {
+        auto settings = openSettings();
+        settings->setValue ("theme", id);
+        settings->saveIfNeeded();
+    }
 }
 
 class MugenLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
     MugenLookAndFeel()
+    {
+        refreshColours();
+    }
+
+    /** Volta a ler as cores do tema ativo. */
+    void refreshColours()
     {
         setColour (juce::Slider::textBoxTextColourId, MugenColours::textDim);
         setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
@@ -42,7 +131,7 @@ public:
         setColour (juce::ComboBox::outlineColourId, MugenColours::panelOutline);
         setColour (juce::ComboBox::textColourId, MugenColours::text);
         setColour (juce::ComboBox::arrowColourId, MugenColours::blue);
-        setColour (juce::PopupMenu::backgroundColourId, juce::Colour (0xff141226));
+        setColour (juce::PopupMenu::backgroundColourId, MugenColours::panel);
         setColour (juce::PopupMenu::textColourId, MugenColours::text);
         setColour (juce::PopupMenu::headerTextColourId, MugenColours::violet);
         setColour (juce::PopupMenu::highlightedBackgroundColourId, MugenColours::violet.withAlpha (0.45f));
@@ -117,8 +206,8 @@ public:
         g.fillEllipse (juce::Rectangle<float> (bodyRadius * 2.0f, bodyRadius * 2.0f).withCentre (centre.translated (0.0f, 2.5f)));
 
         // Corpo com luz de cima
-        juce::ColourGradient bodyGradient (juce::Colour (0xff35315e).withMultipliedAlpha (alpha), centre.x - bodyRadius * 0.5f, centre.y - bodyRadius,
-                                           juce::Colour (0xff121027).withMultipliedAlpha (alpha), centre.x + bodyRadius * 0.4f, centre.y + bodyRadius, false);
+        juce::ColourGradient bodyGradient (MugenColours::knobTrack.brighter (0.35f).withMultipliedAlpha (alpha), centre.x - bodyRadius * 0.5f, centre.y - bodyRadius,
+                                           MugenColours::knobBody.darker (0.45f).withMultipliedAlpha (alpha), centre.x + bodyRadius * 0.4f, centre.y + bodyRadius, false);
         g.setGradientFill (bodyGradient);
         g.fillEllipse (juce::Rectangle<float> (bodyRadius * 2.0f, bodyRadius * 2.0f).withCentre (centre));
 
@@ -170,8 +259,8 @@ public:
 
         g.setColour (MugenColours::blue.withAlpha (0.18f * alpha));
         g.fillRoundedRectangle (cap.expanded (4.0f), 7.0f);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff3d3870), cap.getX(), cap.getY(),
-                                                 juce::Colour (0xff17152d), cap.getX(), cap.getBottom(), false));
+        g.setGradientFill (juce::ColourGradient (MugenColours::knobTrack.brighter (0.45f), cap.getX(), cap.getY(),
+                                                 MugenColours::knobBody.darker (0.2f), cap.getX(), cap.getBottom(), false));
         g.fillRoundedRectangle (cap, 4.0f);
         g.setColour (juce::Colours::white.withAlpha (0.18f));
         g.drawRoundedRectangle (cap.reduced (0.5f), 4.0f, 1.0f);
@@ -235,7 +324,7 @@ public:
             }
             else
             {
-                g.setColour (isMouseOver ? juce::Colour (0xff221f40) : juce::Colour (0xff17152b));
+                g.setColour (isMouseOver ? MugenColours::panelHeader.brighter (0.08f) : MugenColours::panel);
                 g.fillRoundedRectangle (area.reduced (1.0f), 5.0f);
                 g.setColour (MugenColours::blue.withAlpha (0.35f));
                 g.fillRoundedRectangle (area.withTop (area.getBottom() - 2.0f).reduced (10.0f, 0.0f), 1.0f);
@@ -245,7 +334,7 @@ public:
 
         if (button.getProperties().contains ("ghost"))
         {
-            g.setColour (isButtonDown ? juce::Colour (0xff2a2650) : (isMouseOver ? juce::Colour (0xff201d3c) : juce::Colour (0xff15132a)));
+            g.setColour (isButtonDown ? MugenColours::knobTrack : (isMouseOver ? MugenColours::panelHeader : MugenColours::panel));
             g.fillRoundedRectangle (area.reduced (0.5f), 6.0f);
             g.setColour (MugenColours::panelOutline);
             g.drawRoundedRectangle (area.reduced (0.5f), 6.0f, 1.0f);
@@ -260,7 +349,7 @@ public:
         }
         else
         {
-            g.setColour (isButtonDown ? juce::Colour (0xff2a2650) : (isMouseOver ? juce::Colour (0xff201d3c) : MugenColours::screen));
+            g.setColour (isButtonDown ? MugenColours::knobTrack : (isMouseOver ? MugenColours::panelHeader : MugenColours::screen));
             g.fillRoundedRectangle (area.reduced (0.5f), 6.0f);
             g.setColour (MugenColours::panelOutline);
             g.drawRoundedRectangle (area.reduced (0.5f), 6.0f, 1.0f);

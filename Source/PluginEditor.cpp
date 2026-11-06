@@ -30,15 +30,15 @@ namespace
         const auto area = bounds.toFloat();
 
         // Corpo com gradiente vertical suave
-        g.setGradientFill (juce::ColourGradient (screen ? MugenColours::screen : juce::Colour (0xff1a1831), 0.0f, area.getY(),
-                                                 screen ? MugenColours::screen : juce::Colour (0xff121024), 0.0f, area.getBottom(), false));
+        g.setGradientFill (juce::ColourGradient (screen ? MugenColours::screen : MugenColours::panelTop, 0.0f, area.getY(),
+                                                 screen ? MugenColours::screen : MugenColours::panelBottom, 0.0f, area.getBottom(), false));
         g.fillRoundedRectangle (area, 12.0f);
 
         auto header = area.withHeight (30.0f);
         juce::Path headerShape;
         headerShape.addRoundedRectangle (header.getX(), header.getY(), header.getWidth(), header.getHeight(),
                                          12.0f, 12.0f, true, true, false, false);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff25214a), 0.0f, header.getY(),
+        g.setGradientFill (juce::ColourGradient (MugenColours::headerHighlight, 0.0f, header.getY(),
                                                  MugenColours::panelHeader, 0.0f, header.getBottom(), false));
         g.fillPath (headerShape);
 
@@ -81,15 +81,21 @@ public:
         : juce::MidiKeyboardComponent (keyState, horizontalKeyboard), processor (p)
     {
         setAvailableRange (36, 96);
-        setColour (whiteNoteColourId,           juce::Colour (0xffdcd8f2));
-        setColour (blackNoteColourId,           juce::Colour (0xff15132a));
-        setColour (keySeparatorLineColourId,    juce::Colour (0xff3a3370));
+        refreshColours();
+        setWantsKeyboardFocus (false);
+    }
+
+    void refreshColours()
+    {
+        setColour (whiteNoteColourId,           MugenColours::keyWhite);
+        setColour (blackNoteColourId,           MugenColours::keyBlack);
+        setColour (keySeparatorLineColourId,    MugenColours::keyLine);
         setColour (mouseOverKeyOverlayColourId, MugenColours::blue.withAlpha (0.25f));
         setColour (keyDownOverlayColourId,      MugenColours::violet.withAlpha (0.75f));
         setColour (shadowColourId,              juce::Colours::transparentBlack);
         setColour (upDownButtonBackgroundColourId, MugenColours::panel);
         setColour (upDownButtonArrowColourId,   MugenColours::blue);
-        setWantsKeyboardFocus (false);
+        repaint();
     }
 
     void drawWhiteNote (int note, juce::Graphics& g, juce::Rectangle<float> area,
@@ -148,11 +154,12 @@ public:
         juce::Random random (seed);
 
         // Cores por categoria
-        juce::Colour top (0xff2b1d6e), bottom (0xff0a0818), glow (MugenColours::violet);
+        juce::Colour top (MugenColours::bandA), bottom (MugenColours::screen), glow (MugenColours::violet);
         if (category == "Organic")    { top = juce::Colour (0xff1d3a4a); glow = juce::Colour (0xff6fd3c1); }
         if (category == "Rhythmic")   { top = juce::Colour (0xff4a1d4a); glow = juce::Colour (0xffff7ab8); }
         if (category == "Atmosphere") { top = juce::Colour (0xff142a5e); glow = MugenColours::blue; }
         if (category == "Crystal")    { top = juce::Colour (0xff1d4a66); glow = juce::Colour (0xffbfefff); }
+        if (category == "Sequences")  { top = juce::Colour (0xff3a1d5e); glow = juce::Colour (0xffd59bff); }
         if (category == "User")       { top = juce::Colour (0xff3a2a14); glow = juce::Colour (0xffffc46b); }
 
         juce::Path clip;
@@ -268,6 +275,14 @@ public:
 
     std::function<void()> onPresetChosen, onSaveRequested;
 
+    void refreshColours()
+    {
+        searchBox.setTextToShowWhenEmpty ("Search patches...", MugenColours::textDim);
+        searchBox.applyColourToAllText (MugenColours::text);
+        artwork.repaint();
+        list.repaint();
+    }
+
     void rebuild()
     {
         rows.clear();
@@ -323,7 +338,7 @@ public:
         g.drawText ("PATCHES", 32, 6, 200, 28, juce::Justification::centredLeft);
 
         // Fundo da lista
-        g.setColour (juce::Colour (0xff0a0914));
+        g.setColour (MugenColours::listBackground);
         g.fillRoundedRectangle (list.getBounds().toFloat().expanded (4.0f), 8.0f);
         g.setColour (MugenColours::panelOutline);
         g.drawRoundedRectangle (list.getBounds().toFloat().expanded (4.0f), 8.0f, 1.0f);
@@ -445,9 +460,9 @@ public:
     void paint (juce::Graphics& g) override
     {
         const auto area = getLocalBounds().toFloat();
-        g.setColour (juce::Colour (0xe0080714));
+        g.setColour (MugenColours::screen.withAlpha (0.88f));
         g.fillRoundedRectangle (area, 8.0f);
-        g.setColour (isMouseOver() ? MugenColours::violet : juce::Colour (0xff3b3577));
+        g.setColour (isMouseOver() ? MugenColours::violet : MugenColours::displayEdge);
         g.drawRoundedRectangle (area.reduced (0.5f), 8.0f, 1.0f);
 
         // Etiqueta da categoria
@@ -843,11 +858,11 @@ private:
             // Paleta: muitas brancas, e cores que vivem no plugin
             const float pick = random.nextFloat();
             if      (pick < 0.40f) m.colour = juce::Colour (0xfff4f1ff);   // branca
-            else if (pick < 0.58f) m.colour = MugenColours::blue;          // azul Mugen
-            else if (pick < 0.74f) m.colour = MugenColours::violet;        // violeta Mugen
-            else if (pick < 0.85f) m.colour = juce::Colour (0xff6ff3e0);   // turquesa (aurora)
-            else if (pick < 0.94f) m.colour = juce::Colour (0xffff7ad9);   // rosa nebulosa
-            else                   m.colour = juce::Colour (0xffffd27a);   // dourada (rara)
+            else if (pick < 0.58f) m.colour = MugenColours::blue;          // acento secundário do tema
+            else if (pick < 0.74f) m.colour = MugenColours::violet;        // acento principal do tema
+            else if (pick < 0.85f) m.colour = MugenColours::starA;         // cores próprias de cada tema
+            else if (pick < 0.94f) m.colour = MugenColours::starB;
+            else                   m.colour = MugenColours::starC;         // a mais rara
             m.alive = true;
             return;
         }
@@ -1175,7 +1190,7 @@ private:
             if (widths[(size_t) i] < 0.0f)
                 continue;
             const auto chip = juce::Rectangle<float> (x, y, widths[(size_t) i], height);
-            g.setColour (juce::Colour (0xff141230));
+            g.setColour (MugenColours::chip);
             g.fillRoundedRectangle (chip, height * 0.5f);
             g.setColour ((i % 2 == 0 ? MugenColours::violet : MugenColours::blue).withAlpha (0.55f));
             g.drawRoundedRectangle (chip.reduced (0.5f), height * 0.5f, 1.0f);
@@ -1268,6 +1283,7 @@ public:
         makeToggle (freezeButton, "FREEZE", ParamIDs::freeze);
         makeToggle (ghostButton,  "GHOST ON", ParamIDs::ghostOn);
         makeSelector (ghostRateSelector, GhostEngine::rateNames(), ParamIDs::ghostRate);
+        makeSelector (ghostModeSelector, GhostEngine::modeNames(), ParamIDs::ghostMode);
 
         // --- Painéis ------------------------------------------------------------------
         setupPanels();
@@ -1327,6 +1343,21 @@ public:
         shootingStars.setActive (starsButton.getToggleState());
         addAndMakeVisible (starsButton);
 
+        // Seletor de tema (preferência do utilizador, vale para todos os projetos)
+        themeSelector.addItemList (MugenTheme::names(), 1);
+        themeSelector.setSelectedItemIndex (MugenTheme::current(), juce::dontSendNotification);
+        themeSelector.onChange = [this]
+        {
+            const int id = themeSelector.getSelectedItemIndex();
+            if (id < 0 || id == MugenTheme::current())
+                return;
+            MugenTheme::apply (id);
+            MugenTheme::save (id);
+            if (onThemeChanged)
+                onThemeChanged();
+        };
+        addAndMakeVisible (themeSelector);
+
         presetChanged();
         startTimerHz (30);
     }
@@ -1380,8 +1411,8 @@ public:
         // Faixa do cabeçalho: céu violeta-azul com estrelas
         {
             const auto band = headerBandArea.toFloat();
-            g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2a1c6b), band.getX(), band.getY(),
-                                                     juce::Colour (0xff17327a), band.getRight(), band.getBottom(), false));
+            g.setGradientFill (juce::ColourGradient (MugenColours::bandA, band.getX(), band.getY(),
+                                                     MugenColours::bandB, band.getRight(), band.getBottom(), false));
             g.fillRect (band);
             g.setGradientFill (juce::ColourGradient (MugenColours::violet.withAlpha (0.35f), band.getCentreX(), band.getY() + 30.0f,
                                                      MugenColours::violet.withAlpha (0.0f), band.getCentreX() + 360.0f, band.getY() + 30.0f, true));
@@ -1393,6 +1424,8 @@ public:
                 const float s = (i % 7 == 0) ? 1.8f : 1.0f;
                 g.fillEllipse (stars[i].x, stars[i].y, s, s);
             }
+
+            drawThemeArt (g, band);
 
             g.setColour (juce::Colours::black.withAlpha (0.35f));
             g.fillRect (band.withTop (band.getBottom() - 2.0f));
@@ -1419,14 +1452,147 @@ public:
         // Macros
         {
             const auto area = macroArea.toFloat();
-            g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1a1831), 0.0f, area.getY(),
-                                                     juce::Colour (0xff121024), 0.0f, area.getBottom(), false));
+            g.setGradientFill (juce::ColourGradient (MugenColours::panelTop, 0.0f, area.getY(),
+                                                     MugenColours::panelBottom, 0.0f, area.getBottom(), false));
             g.fillRoundedRectangle (area, 12.0f);
             g.setColour (MugenColours::panelOutline);
             g.drawRoundedRectangle (area.reduced (0.5f), 12.0f, 1.0f);
 
         }
     }
+
+    /** Arte do cabeçalho própria de cada tema. */
+    void drawThemeArt (juce::Graphics& g, juce::Rectangle<float> band)
+    {
+        const int theme = MugenTheme::current();
+        g.saveState();
+        g.reduceClipRegion (band.toNearestInt());
+
+        if (theme == MugenTheme::nebula)
+        {
+            // Planeta com anel, discreto, à direita
+            const juce::Point<float> c (band.getRight() - 200.0f, band.getCentreY() - 6.0f);
+            g.setGradientFill (juce::ColourGradient (MugenColours::violet.withAlpha (0.45f), c.x, c.y,
+                                                     MugenColours::violet.withAlpha (0.0f), c.x + 90.0f, c.y, true));
+            g.fillEllipse (juce::Rectangle<float> (180.0f, 180.0f).withCentre (c));
+            g.setGradientFill (juce::ColourGradient (MugenColours::blue.brighter (0.3f), c.x - 10.0f, c.y - 12.0f,
+                                                     MugenColours::bandA.darker (0.5f), c.x + 16.0f, c.y + 18.0f, true));
+            g.fillEllipse (juce::Rectangle<float> (40.0f, 40.0f).withCentre (c));
+            g.setColour (MugenColours::blue.withAlpha (0.7f));
+            g.drawEllipse (juce::Rectangle<float> (86.0f, 20.0f).withCentre (c), 1.3f);
+        }
+        else if (theme == MugenTheme::aurora)
+        {
+            // Cortinas de aurora boreal a ondular pelo céu
+            const juce::Colour colours[] = { MugenColours::violet, MugenColours::blue, MugenColours::starA };
+            for (int r = 0; r < 3; ++r)
+            {
+                juce::Path curtain;
+                const float phase = (float) r * 1.7f;
+                const float topBase = band.getY() + 8.0f + (float) r * 10.0f;
+                const float height = 64.0f - (float) r * 10.0f;
+
+                for (float x = band.getX(); x <= band.getRight(); x += 6.0f)
+                {
+                    const float u = (x - band.getX()) / band.getWidth();
+                    const float y = topBase + 12.0f * std::sin (u * 9.0f + phase) + 6.0f * std::sin (u * 23.0f + phase * 2.0f);
+                    if (x == band.getX()) curtain.startNewSubPath (x, y);
+                    else                  curtain.lineTo (x, y);
+                }
+                for (float x = band.getRight(); x >= band.getX(); x -= 6.0f)
+                {
+                    const float u = (x - band.getX()) / band.getWidth();
+                    const float y = topBase + height + 12.0f * std::sin (u * 9.0f + phase) + 10.0f * std::sin (u * 5.0f - phase);
+                    curtain.lineTo (x, y);
+                }
+                curtain.closeSubPath();
+
+                juce::ColourGradient fill (colours[r].withAlpha (0.38f - 0.08f * (float) r), 0.0f, topBase,
+                                           colours[r].withAlpha (0.0f), 0.0f, topBase + height + 10.0f, false);
+                g.setGradientFill (fill);
+                g.fillPath (curtain);
+            }
+        }
+        else if (theme == MugenTheme::eclipse)
+        {
+            // Sol negro com coroa dourada e raios
+            const juce::Point<float> c (band.getRight() - 200.0f, band.getCentreY() - 4.0f);
+            constexpr float radius = 30.0f;
+            g.setGradientFill (juce::ColourGradient (MugenColours::violet.withAlpha (0.65f), c.x, c.y,
+                                                     MugenColours::blue.withAlpha (0.0f), c.x + 110.0f, c.y, true));
+            g.fillEllipse (juce::Rectangle<float> (220.0f, 220.0f).withCentre (c));
+
+            juce::Random rays (17);
+            for (int i = 0; i < 48; ++i)
+            {
+                const float a = juce::MathConstants<float>::twoPi * (float) i / 48.0f;
+                const float length = 10.0f + rays.nextFloat() * 26.0f;
+                g.setColour (MugenColours::violet.withAlpha (0.18f + 0.25f * rays.nextFloat()));
+                g.drawLine ({ c.getPointOnCircumference (radius + 3.0f, a), c.getPointOnCircumference (radius + 3.0f + length, a) }, 1.0f);
+            }
+
+            g.setColour (juce::Colours::black);
+            g.fillEllipse (juce::Rectangle<float> (radius * 2.0f, radius * 2.0f).withCentre (c));
+            g.setColour (MugenColours::violet.brighter (0.4f));
+            g.drawEllipse (juce::Rectangle<float> (radius * 2.0f, radius * 2.0f).withCentre (c), 1.6f);
+            // "Anel de diamante" do eclipse
+            g.setColour (juce::Colours::white.withAlpha (0.9f));
+            g.fillEllipse (juce::Rectangle<float> (5.0f, 5.0f).withCentre (c.getPointOnCircumference (radius, -0.7f)));
+
+            // Brasas no horizonte
+            g.setGradientFill (juce::ColourGradient (MugenColours::blue.withAlpha (0.35f), band.getX() + 120.0f, band.getBottom(),
+                                                     MugenColours::blue.withAlpha (0.0f), band.getX() + 420.0f, band.getBottom() - 60.0f, true));
+            g.fillRect (band);
+        }
+        else if (theme == MugenTheme::sakura)
+        {
+            // Lua cheia e pétalas de cerejeira a flutuar
+            const juce::Point<float> c (band.getRight() - 200.0f, band.getCentreY() - 6.0f);
+            g.setGradientFill (juce::ColourGradient (MugenColours::blue.withAlpha (0.5f), c.x, c.y,
+                                                     MugenColours::blue.withAlpha (0.0f), c.x + 90.0f, c.y, true));
+            g.fillEllipse (juce::Rectangle<float> (180.0f, 180.0f).withCentre (c));
+            g.setGradientFill (juce::ColourGradient (juce::Colours::white, c.x - 10.0f, c.y - 12.0f,
+                                                     MugenColours::blue, c.x + 22.0f, c.y + 22.0f, true));
+            g.fillEllipse (juce::Rectangle<float> (52.0f, 52.0f).withCentre (c));
+            g.setColour (MugenColours::blue.darker (0.4f).withAlpha (0.35f));
+            g.fillEllipse (juce::Rectangle<float> (10.0f, 8.0f).withCentre (c.translated (-8.0f, 4.0f)));
+            g.fillEllipse (juce::Rectangle<float> (6.0f, 6.0f).withCentre (c.translated (9.0f, -8.0f)));
+
+            juce::Random petals (7);
+            for (int i = 0; i < 34; ++i)
+            {
+                const juce::Point<float> p (band.getX() + petals.nextFloat() * band.getWidth(),
+                                            band.getY() + petals.nextFloat() * band.getHeight());
+                const float size = 4.0f + petals.nextFloat() * 6.0f;
+                juce::Path petal;
+                petal.addEllipse (-size, -size * 0.45f, size * 2.0f, size * 0.9f);
+                petal.applyTransform (juce::AffineTransform::rotation (petals.nextFloat() * juce::MathConstants<float>::twoPi)
+                                          .translated (p.x, p.y));
+                g.setColour (MugenColours::violet.withAlpha (0.35f + 0.45f * petals.nextFloat()));
+                g.fillPath (petal);
+            }
+        }
+
+        g.restoreState();
+    }
+
+    /** Volta a aplicar as cores do tema aos componentes com cores próprias. */
+    void applyThemeColours()
+    {
+        for (auto* k : allKnobs)
+        {
+            k->label.setColour (juce::Label::textColourId, MugenColours::text);
+            styleValueBox (k->slider);
+        }
+        styleValueBox (volumeFader);
+        for (auto& macro : macros)
+            macro.label.setColour (juce::Label::textColourId, MugenColours::textDim);
+        keyboard.refreshColours();
+        browser.refreshColours();
+        repaint();
+    }
+
+    std::function<void()> onThemeChanged;
 
     void resized() override
     {
@@ -1449,6 +1615,7 @@ public:
         stage.setBounds (stageArea);
         shootingStars.setBounds (getLocalBounds());
         starsButton.setBounds (1010, 9, 64, 22);
+        themeSelector.setBounds (850, 9, 150, 22);
 
         // Faixa OUT: fader do volume + knob Width
         auto output = outputStripArea.reduced (4, 8).withTrimmedTop (30);
@@ -1517,6 +1684,7 @@ private:
         knob.label.setJustificationType (juce::Justification::centred);
         knob.label.setFont (font (12.5f, true, 0.05f));
         knob.label.setColour (juce::Label::textColourId, MugenColours::text);
+        allKnobs.push_back (&knob);
         knob.attachment = std::make_unique<SliderAttachment> (processor.parameters, id, knob.slider);
     }
 
@@ -1603,8 +1771,8 @@ private:
         fillPanel (motion.right, "STEREO FIELD", "Left and right movement", {}, {}, &motionScope);
 
         auto& ghostPage = pages[4];
-        fillPanel (ghostPage.left, "GHOST NOTES", "Hold a note: patterns play in the scale",
-                   { { &ghostButton.button, &ghostRateSelector.box } }, { &ghostDensity, &ghostRange });
+        fillPanel (ghostPage.left, "GHOST NOTES", "Hold notes: Ghost walks the scale, Arp plays them",
+                   { { &ghostButton.button, &ghostModeSelector.box }, { &ghostRateSelector.box } }, { &ghostDensity, &ghostRange });
         fillPanel (ghostPage.right, "EXPRESSION", "Wheel & aftertouch open Shimmer + Motion",
                    {}, { &velocitySens, &wheelAmount, &pressureAmount });
 
@@ -1732,7 +1900,7 @@ private:
 
     Selector sampleSelector, divisionSelector, reverbSelector, rootSelector, scaleSelector, mappingSelector;
     Toggle syncButton, freezeButton, ghostButton;
-    Selector ghostRateSelector;
+    Selector ghostRateSelector, ghostModeSelector;
 
     PatchBrowser browser;
     PatchDisplay patchDisplay;
@@ -1758,15 +1926,27 @@ private:
     juce::String lastPresetName;
     int lastScaleSignature = -1;
     std::vector<juce::Point<float>> stars;
+    std::vector<Knob*> allKnobs;
+    juce::ComboBox themeSelector;
 };
 
 // ==============================================================================
 MugenSpaceDrumEditor::MugenSpaceDrumEditor (MugenSpaceDrumProcessor& p)
     : AudioProcessorEditor (&p)
 {
+    // Tema guardado nas tuas preferências
+    MugenTheme::apply (MugenTheme::loadSaved());
+    lookAndFeel.refreshColours();
     setLookAndFeel (&lookAndFeel);
 
     view = std::make_unique<MainView> (p);
+    view->onThemeChanged = [this]
+    {
+        lookAndFeel.refreshColours();
+        view->applyThemeColours();
+        sendLookAndFeelChange();
+        repaint();
+    };
     addAndMakeVisible (*view);
 
     // Janela redimensionável, sempre com as mesmas proporções (abre a 85 %).
