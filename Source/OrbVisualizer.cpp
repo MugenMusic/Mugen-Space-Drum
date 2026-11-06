@@ -1,21 +1,24 @@
 #include "OrbVisualizer.h"
 #include "PluginProcessor.h"
 #include "MugenLookAndFeel.h"
+#include "MugenArt.h"
 
 OrbVisualizer::OrbVisualizer (MugenSpaceDrumProcessor& p)
-    : processor (p)
+    : processor (p), random (2024)
 {
     setInterceptsMouseClicks (false, false);
 
-    juce::Random random (2024);
     for (auto& particle : particles)
     {
         particle.radius = 0.55f + random.nextFloat() * 0.45f;
         particle.angle  = random.nextFloat() * juce::MathConstants<float>::twoPi;
-        particle.speed  = (0.15f + random.nextFloat() * 0.5f) * (random.nextBool() ? 1.0f : -1.0f);
-        particle.size   = 1.0f + random.nextFloat() * 2.2f;
+        particle.speed  = (0.12f + random.nextFloat() * 0.4f) * (random.nextBool() ? 1.0f : -1.0f);
+        particle.size   = 0.8f + random.nextFloat() * 1.8f;
         particle.phase  = random.nextFloat() * juce::MathConstants<float>::twoPi;
     }
+
+    for (auto& m : motes)
+        m.alive = false;
 
     startTimerHz (60);
 }
@@ -27,11 +30,11 @@ OrbVisualizer::~OrbVisualizer()
 
 void OrbVisualizer::timerCallback()
 {
+    constexpr float dt = 1.0f / 60.0f;
     const float rate = processor.parameters.getRawParameterValue (ParamIDs::motionRate)->load();
-    const float dt = 1.0f / 60.0f;
     time += dt * (0.4f + rate * 2.0f);
 
-    // Energia: sobe depressa com o som, desce devagar.
+    // Energia: sobe depressa com o som, desce devagar
     const float level = juce::jlimit (0.0f, 1.0f, processor.outputLevel.load() * 2.5f);
     energy = juce::jmax (level, energy * 0.94f);
 
@@ -43,8 +46,54 @@ void OrbVisualizer::timerCallback()
     }
     pulse *= 0.92f;
 
+    // Mudou de preset? O emblema antigo dissolve-se e o novo desenha-se
+    const auto& entries = processor.presetManager.getEntries();
+    const int index = processor.presetManager.getCurrentIndex();
+    const juce::String name = processor.presetManager.getCurrentName();
+    const juce::String category = (index >= 0 && index < (int) entries.size()) ? entries[(size_t) index].category : juce::String ("Custom");
+    const juce::String key = category + "/" + name;
+
+    if (key != currentKey)
+    {
+        const bool firstTime = currentKey.isEmpty();
+        previous = current;
+        current = { category, name.hashCode() };
+        currentKey = key;
+        transition = firstTime ? 1.0f : 0.0f;
+        bloom = firstTime ? 0.0f : 1.0f;
+    }
+    transition = juce::jmin (1.0f, transition + dt / 1.4f);
+    bloom *= 0.93f;
+
     for (auto& particle : particles)
         particle.angle += particle.speed * dt * (0.6f + rate * 3.0f + energy);
+
+    // Poeira de luz a subir (mais quando há som)
+    const float spawnChance = dt * (3.0f + 14.0f * energy);
+    if (random.nextFloat() < spawnChance)
+    {
+        for (auto& m : motes)
+        {
+            if (m.alive)
+                continue;
+            const auto b = getLocalBounds().toFloat();
+            m = { b.getCentreX() + (random.nextFloat() - 0.5f) * b.getHeight() * 0.9f,
+                  b.getCentreY() + b.getHeight() * (0.15f + random.nextFloat() * 0.3f),
+                  14.0f + random.nextFloat() * 22.0f, 4.0f + random.nextFloat() * 10.0f,
+                  random.nextFloat() * juce::MathConstants<float>::twoPi, 0.0f,
+                  2.5f + random.nextFloat() * 2.5f, 0.8f + random.nextFloat() * 1.8f, true };
+            break;
+        }
+    }
+    for (auto& m : motes)
+    {
+        if (! m.alive)
+            continue;
+        m.life += dt;
+        m.y -= m.speed * dt;
+        if (m.life >= m.duration)
+            m.alive = false;
+    }
 
     repaint();
 }
@@ -53,21 +102,35 @@ void OrbVisualizer::paint (juce::Graphics& g)
 {
     const auto bounds = getLocalBounds().toFloat();
     const auto centre = bounds.getCentre();
-    const float baseRadius = juce::jmin (bounds.getWidth(), bounds.getHeight()) * 0.22f;
-    const float breathe = 1.0f + 0.03f * std::sin (time * 1.3f) + 0.08f * pulse;
+    const float baseRadius = juce::jmin (bounds.getWidth(), bounds.getHeight()) * 0.26f;
+    const float breathe = 1.0f + 0.025f * std::sin (time * 1.1f) + 0.05f * pulse;
     const float radius = baseRadius * breathe;
 
+    // Paleta: o acento principal acompanha o Character (corpo macio → cristal)
     const float character = processor.parameters.getRawParameterValue (ParamIDs::character)->load();
-    const auto mainColour = MugenColours::violet.interpolatedWith (MugenColours::blue, character);
-    const auto accent     = MugenColours::blue.interpolatedWith (juce::Colour (0xffd6f4ff), character * 0.6f);
+    const auto accentA = MugenColours::violet.interpolatedWith (MugenColours::blue, character * 0.6f);
+    const auto accentB = MugenColours::blue.interpolatedWith (juce::Colours::white, character * 0.25f);
+    const MugenArt::Palette palette { accentA, accentB, MugenColours::text, MugenColours::screen };
     const float glow = 0.35f + 0.65f * energy;
 
-    // --- Halo de fundo ----------------------------------------------------------
+    // --- Halo profundo -------------------------------------------------------------
+    g.setGradientFill (juce::ColourGradient (accentA.withAlpha (0.22f * glow + 0.06f), centre.x, centre.y,
+                                             accentA.withAlpha (0.0f), centre.x + radius * 2.4f, centre.y, true));
+    g.fillEllipse (juce::Rectangle<float> (radius * 4.8f, radius * 4.8f).withCentre (centre));
+
+    // --- Raios de luz volumétricos --------------------------------------------------
+    MugenArt::drawLightRays (g, centre, radius * 0.9f, radius * 2.6f, time, 0.55f + 0.6f * glow + 0.6f * bloom, palette);
+
+    // --- Poeira de luz a subir ----------------------------------------------------
+    for (const auto& m : motes)
     {
-        juce::ColourGradient halo (mainColour.withAlpha (0.35f * glow + 0.08f), centre.x, centre.y,
-                                   mainColour.withAlpha (0.0f), centre.x + radius * 2.2f, centre.y, true);
-        g.setGradientFill (halo);
-        g.fillEllipse (juce::Rectangle<float> (radius * 4.4f, radius * 4.4f).withCentre (centre));
+        if (! m.alive)
+            continue;
+        const float u = m.life / m.duration;
+        const float a = std::sin (juce::MathConstants<float>::pi * u) * 0.7f;
+        const float x = m.x + std::sin (m.phase + m.life * 1.3f) * m.sway;
+        g.setColour (accentB.interpolatedWith (juce::Colours::white, 0.5f).withAlpha (a));
+        g.fillEllipse (juce::Rectangle<float> (m.size, m.size).withCentre ({ x, m.y }));
     }
 
     // --- Anel de onda ao vivo (o som real à volta do orbe) ----------------------------
@@ -75,8 +138,8 @@ void OrbVisualizer::paint (juce::Graphics& g)
         const int size = MugenSpaceDrumProcessor::scopeSize;
         const int points = 256;
         const int end = processor.scopeWriteIndex.load (std::memory_order_relaxed);
-        const float ringRadius = radius * 1.55f;
-        const float amplitude = radius * 0.40f;
+        const float ringRadius = radius * 1.45f;
+        const float amplitude = radius * 0.30f;
 
         juce::Path wave;
         for (int i = 0; i <= points; ++i)
@@ -90,85 +153,60 @@ void OrbVisualizer::paint (juce::Graphics& g)
             else        wave.lineTo (p);
         }
         wave.closeSubPath();
+        MugenArt::glowStroke (g, wave, accentB, 0.45f + 0.5f * glow, 1.1f);
 
-        juce::ColourGradient ringColour (MugenColours::violet.withAlpha (0.9f), centre.x - ringRadius, centre.y,
-                                         accent.withAlpha (0.9f), centre.x + ringRadius, centre.y, false);
-        g.setColour (accent.withAlpha (0.10f + 0.25f * glow));
-        g.strokePath (wave, juce::PathStrokeType (6.0f, juce::PathStrokeType::curved));
-        g.setGradientFill (ringColour);
-        g.strokePath (wave, juce::PathStrokeType (1.4f, juce::PathStrokeType::curved));
-
-        // Marcas finas à volta (mostrador)
+        // Mostrador de marcas finas
         for (int t = 0; t < 72; ++t)
         {
             const float a = juce::MathConstants<float>::twoPi * (float) t / 72.0f + time * 0.05f;
-            const float inner = ringRadius + amplitude + (t % 6 == 0 ? 6.0f : 9.0f);
-            const auto p1 = centre.getPointOnCircumference (inner, a);
-            const auto p2 = centre.getPointOnCircumference (ringRadius + amplitude + 12.0f, a);
-            g.setColour (MugenColours::textDim.withAlpha (t % 6 == 0 ? 0.45f : 0.18f));
-            g.drawLine ({ p1, p2 }, 1.0f);
+            const float inner = ringRadius + amplitude + (t % 6 == 0 ? 5.0f : 8.0f);
+            g.setColour (MugenColours::textDim.withAlpha (t % 6 == 0 ? 0.45f : 0.16f));
+            g.drawLine ({ centre.getPointOnCircumference (inner, a), centre.getPointOnCircumference (ringRadius + amplitude + 11.0f, a) }, 1.0f);
         }
     }
 
-    // --- Partículas em órbita ---------------------------------------------------
+    // --- Partículas em órbita -----------------------------------------------------
     for (const auto& particle : particles)
     {
-        const float r = radius * (1.15f + particle.radius * 0.9f);
+        const float r = radius * (1.05f + particle.radius * 0.45f);
         const auto pos = centre.getPointOnCircumference (r, particle.angle);
         const float twinkle = 0.35f + 0.65f * (0.5f + 0.5f * std::sin (time * 3.0f + particle.phase));
-        g.setColour (accent.withAlpha (twinkle * (0.25f + 0.6f * glow)));
+        g.setColour (accentB.withAlpha (twinkle * (0.25f + 0.6f * glow)));
         g.fillEllipse (juce::Rectangle<float> (particle.size, particle.size).withCentre (pos));
     }
 
-    // --- Anéis ----------------------------------------------------------------
-    for (int ring = 0; ring < 3; ++ring)
-    {
-        const float r = radius * (1.0f + 0.16f * (float) ring);
-        g.setColour (mainColour.withAlpha (0.18f + 0.1f * glow - 0.04f * (float) ring));
-        g.drawEllipse (juce::Rectangle<float> (r * 2.0f, r * 2.0f).withCentre (centre), 1.2f);
+    // --- Esfera de vidro com o emblema do preset lá dentro ----------------------------
+    const float sphereRadius = radius * 0.92f;
+    MugenArt::drawGlassOrb (g, centre, sphereRadius, glow, palette, false);
 
-        // Arco luminoso a rodar em cada anel
-        juce::Path arc;
-        const float start = time * (0.6f + 0.35f * (float) ring) * (ring % 2 == 0 ? 1.0f : -1.0f);
-        arc.addCentredArc (centre.x, centre.y, r, r, 0.0f, start, start + 0.9f + 0.4f * glow, true);
-        g.setColour (accent.withAlpha (0.5f + 0.4f * glow));
-        g.strokePath (arc, juce::PathStrokeType (2.2f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    {
+        g.saveState();
+        juce::Path clip;
+        clip.addEllipse (juce::Rectangle<float> (sphereRadius * 2.0f, sphereRadius * 2.0f).withCentre (centre));
+        g.reduceClipRegion (clip);
+
+        const float t = transition;
+        const float emblemRadius = sphereRadius * 0.86f;
+
+        // O antigo dissolve-se a expandir; o novo desenha-se do centro
+        if (t < 1.0f && previous.category.isNotEmpty())
+            MugenArt::drawEmblem (g, centre, emblemRadius * (1.0f + 0.45f * t), previous.category, previous.seed,
+                                  time, 1.0f, 1.0f - t, pulse, palette);
+
+        MugenArt::drawEmblem (g, centre, emblemRadius, current.category, current.seed, time, t, 1.0f, pulse, palette);
+        g.restoreState();
     }
 
-    // --- Esfera ---------------------------------------------------------------
+    MugenArt::drawGlassOrb (g, centre, sphereRadius, glow, palette, true);
+
+    // --- Clarão ao mudar de preset ------------------------------------------------
+    if (bloom > 0.01f)
     {
-        juce::ColourGradient sphere (accent.withAlpha (0.55f * glow + 0.15f), centre.x, centre.y - radius * 0.3f,
-                                     MugenColours::backgroundBottom.withAlpha (0.9f), centre.x, centre.y + radius, true);
-        g.setGradientFill (sphere);
-        g.fillEllipse (juce::Rectangle<float> (radius * 1.7f, radius * 1.7f).withCentre (centre));
+        const float r = radius * (1.0f + 1.6f * (1.0f - bloom));
+        g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.35f * bloom), centre.x, centre.y,
+                                                 accentB.withAlpha (0.0f), centre.x + r, centre.y, true));
+        g.fillEllipse (juce::Rectangle<float> (r * 2.0f, r * 2.0f).withCentre (centre));
+        g.setColour (accentB.withAlpha (0.6f * bloom));
+        g.drawEllipse (juce::Rectangle<float> (r * 2.0f, r * 2.0f).withCentre (centre), 1.4f);
     }
-
-    // --- Flor de lótus --------------------------------------------------------
-    {
-        const float petal = radius * (0.38f + 0.06f * pulse);
-        const int numPetals = 7;
-        juce::Path lotus;
-
-        for (int i = 0; i < numPetals; ++i)
-        {
-            // Pétalas em leque, como um lótus visto de frente
-            const float spread = juce::MathConstants<float>::pi * 0.85f;
-            const float a = -juce::MathConstants<float>::halfPi - spread * 0.5f + spread * (float) i / (float) (numPetals - 1);
-            const float length = petal * (i == numPetals / 2 ? 1.25f : (1.0f - 0.12f * std::abs ((float) (i - numPetals / 2))));
-
-            juce::Path p;
-            p.startNewSubPath (0.0f, 0.0f);
-            p.cubicTo (length * 0.45f, -length * 0.35f, length * 0.9f, -length * 0.22f, length, 0.0f);
-            p.cubicTo (length * 0.9f, length * 0.22f, length * 0.45f, length * 0.35f, 0.0f, 0.0f);
-            p.applyTransform (juce::AffineTransform::rotation (a)
-                                  .translated (centre.x, centre.y + petal * 0.35f));
-            lotus.addPath (p);
-        }
-
-        g.setColour (accent.withAlpha (0.25f + 0.35f * glow));
-        g.strokePath (lotus, juce::PathStrokeType (5.0f));
-        g.setColour (juce::Colours::white.withAlpha (0.75f + 0.25f * pulse));
-        g.strokePath (lotus, juce::PathStrokeType (1.4f));
-    }
-
 }

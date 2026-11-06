@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "MugenArt.h"
 
 namespace
 {
@@ -728,6 +729,37 @@ public:
 };
 
 // ==============================================================================
+//  Logótipo MUGEN 3D (animado: brilho que atravessa as letras e cintilações)
+// ==============================================================================
+class MugenLogo : public juce::Component,
+                  private juce::Timer
+{
+public:
+    MugenLogo()
+    {
+        setInterceptsMouseClicks (false, false);
+        startTimerHz (30);
+    }
+
+    ~MugenLogo() override { stopTimer(); }
+
+    void paint (juce::Graphics& g) override
+    {
+        const MugenArt::Palette palette { MugenColours::violet, MugenColours::blue, MugenColours::text, MugenColours::screen };
+        MugenArt::drawLogo3D (g, getLocalBounds().toFloat().reduced (8.0f, 0.0f), "MUGEN", palette, time);
+    }
+
+private:
+    void timerCallback() override
+    {
+        time += 1.0f / 30.0f;
+        repaint();
+    }
+
+    float time = 0.0f;
+};
+
+// ==============================================================================
 //  Estrelas cadentes — passam pelo fundo e atravessam os painéis em transparência
 // ==============================================================================
 class ShootingStars : public juce::Component,
@@ -1302,6 +1334,7 @@ public:
 
         stage.onPresetChosen = [this] { presetChanged(); };
         addAndMakeVisible (stage);
+        addAndMakeVisible (logo);
 
         browser.onPresetChosen = [this] { presetChanged(); };
         browser.onSaveRequested = [this] { savePreset(); };
@@ -1430,10 +1463,7 @@ public:
             g.setColour (juce::Colours::black.withAlpha (0.35f));
             g.fillRect (band.withTop (band.getBottom() - 2.0f));
 
-            // Logótipo
-            g.setColour (juce::Colours::white);
-            g.setFont (font (42.0f, false, 0.55f));
-            g.drawText ("MUGEN", headerBandArea.withHeight (68).withTrimmedTop (8), juce::Justification::centred);
+            // (o logótipo MUGEN 3D é desenhado pelo componente MugenLogo)
 
             g.setColour (juce::Colours::white.withAlpha (0.75f));
             g.setFont (font (11.0f, false, 0.6f));
@@ -1613,6 +1643,7 @@ public:
         }
 
         stage.setBounds (stageArea);
+        logo.setBounds (518, 44, 508, 56);
         shootingStars.setBounds (getLocalBounds());
         starsButton.setBounds (1010, 9, 64, 22);
         themeSelector.setBounds (850, 9, 150, 22);
@@ -1928,6 +1959,7 @@ private:
     std::vector<juce::Point<float>> stars;
     std::vector<Knob*> allKnobs;
     juce::ComboBox themeSelector;
+    MugenLogo logo;
 };
 
 // ==============================================================================
