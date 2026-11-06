@@ -1,5 +1,18 @@
 # Changelog — Mugen Space Drum
 
+## v0.7.0 — Expressão, Ghost Notes e estrelas cadentes
+
+- **Velocidade e expressão**: novo knob *Velocity* (sensibilidade). Tocar suave dá um som abafado e "fofinho"
+  (baqueta macia, ataque redondo); tocar forte dá brilho e metal. A 0 % todas as notas soam iguais.
+- **Roda de modulação (CC1) e aftertouch** (de canal e polifónico) abrem o **Shimmer** e o **Motion** enquanto tocas.
+  Knobs *Mod Wheel* e *Aftertouch* definem quanto. Barra **EXPR** no palco mostra a expressão em tempo real.
+- **Ghost Notes**: seguras uma ou mais notas e o plugin toca sozinho padrões generativos dentro da escala escolhida,
+  sincronizados com o BPM e a grelha do Ableton (ou com relógio próprio com o DAW parado).
+  *Rate* (1/4, 1/8T, 1/8, 1/16T, 1/16), *Density* (pausas) e *Range* (1 a 3 oitavas). Indicador **GHOST** no palco.
+- Novo separador **GHOST & EXPRESSION**; separadores ocupam agora toda a largura.
+- **Estrelas cadentes**: passam pelo fundo e atravessam os painéis em transparência suave; campo de estrelas no corpo
+  da janela; botão **STARS** na barra de topo para ligar/desligar (fica guardado no projeto).
+
 ## v0.6.2 — Palco central dinâmico
 
 - **Palco central** maior, com ecrã técnico (grelha subtil, nebulosa, indicador LIVE ENGINE, contador PRESET 03/16).
