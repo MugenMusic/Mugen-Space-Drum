@@ -6,14 +6,14 @@
 #include "OrbVisualizer.h"
 
 // ==============================================================================
-//  PluginEditor — a janela do plugin (Fase 6)
+//  PluginEditor — a janela do plugin (v0.6.1)
 //
-//  Inspirada na organização de um sintetizador profissional:
-//   - Cabeçalho: logótipo, barra de presets (◀ nome ▶ SAVE), luz MIDI.
+//  Organização inspirada nos sintetizadores profissionais, com visual Mugen:
+//   - À esquerda: browser de PATCHES (categoria, pesquisa, capa, lista, ferramentas).
+//   - Faixa de cabeçalho: logótipo e ecrã do preset (◀ ▶, menu ao clicar).
 //   - Separadores: INSTRUMENT · RESONANCE · AMBIENCE · MOTION · SCALE & TUNING.
-//   - Palco central: controlos à esquerda e à direita, orbe animado no meio.
-//   - Browser de presets à direita, organizado por categorias.
-//   - Teclado em baixo, com as notas da escala marcadas.
+//   - Corpo: faixa TUNING | painel | ecrã com o orbe | painel | faixa OUTPUT.
+//   - Macros sempre visíveis e teclado com a escala marcada.
 //
 //  A janela pode ser redimensionada (arrastar o canto inferior direito).
 // ==============================================================================
@@ -25,8 +25,8 @@ public:
 
     void resized() override;
 
-    static constexpr int designWidth  = 1180;
-    static constexpr int designHeight = 760;
+    static constexpr int designWidth  = 1280;
+    static constexpr int designHeight = 800;
 
 private:
     class MainView;
