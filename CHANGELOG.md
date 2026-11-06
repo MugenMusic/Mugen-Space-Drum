@@ -1,5 +1,18 @@
 # Changelog — Mugen Space Drum
 
+## v0.6.1 — Nova interface (estilo sintetizador profissional)
+
+- Organização inspirada nos grandes sintetizadores, com visual Mugen moderno:
+  browser de **PATCHES** à esquerda (categoria, pesquisa, capa gerada por categoria, lista, ◀ ▶, RANDOM, SAVE),
+  faixa de cabeçalho com logótipo e ecrã do preset, separadores, painéis com cabeçalho,
+  **ecrã central com o orbe**, faixas **TUNING** (Octave, Tune) e **OUTPUT** (fader de volume, Width),
+  **macros** sempre visíveis (Character, Blend, Space, Motion) e teclado.
+- Knobs novos: anel luminoso, corpo com luz e reflexo, ponteiro em linha.
+- Faders em cápsula, seletores planos com seta, botões arredondados.
+- Novos visuais: **Scale Map** (círculo das 12 notas com a escala desenhada) e **Stereo Field** (movimento L/R animado).
+- Correções: valores dos knobs sem moldura branca; nome de cada knob logo por baixo do knob.
+- A janela abre a 85 % e pode ser redimensionada (60 % a 130 %).
+
 ## v0.6.0 — Fase 6: Presets & UI
 
 - **Nova interface** ao estilo de um sintetizador profissional, com a identidade Mugen:
