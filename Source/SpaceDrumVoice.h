@@ -38,6 +38,7 @@ struct VoiceParameters
     std::atomic<float>* sampleType = nullptr;
     std::atomic<float>* blend      = nullptr;
     std::atomic<float>* fineTune   = nullptr;   // cêntimos (-50..+50)
+    std::atomic<float>* velocitySens = nullptr; // 0 = todas as notas iguais, 1 = muito expressivo
     const SampleBank*   sampleBank = nullptr;
 };
 

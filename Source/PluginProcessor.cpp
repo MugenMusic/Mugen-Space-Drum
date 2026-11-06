@@ -13,6 +13,7 @@ MugenSpaceDrumProcessor::MugenSpaceDrumProcessor()
     voiceParams.sampleType = parameters.getRawParameterValue (ParamIDs::sampleType);
     voiceParams.blend      = parameters.getRawParameterValue (ParamIDs::blend);
     voiceParams.fineTune   = parameters.getRawParameterValue (ParamIDs::fineTune);
+    voiceParams.velocitySens = parameters.getRawParameterValue (ParamIDs::velocitySens);
     voiceParams.sampleBank = &sampleBank;
 
     for (int i = 0; i < maxVoices; ++i)
@@ -28,6 +29,12 @@ MugenSpaceDrumProcessor::MugenSpaceDrumProcessor()
     volume        = parameters.getRawParameterValue (ParamIDs::volume);
     delaySync     = parameters.getRawParameterValue (ParamIDs::delaySync);
     delayDivision = parameters.getRawParameterValue (ParamIDs::delayDivision);
+    wheelAmount    = parameters.getRawParameterValue (ParamIDs::wheelAmount);
+    pressureAmount = parameters.getRawParameterValue (ParamIDs::pressureAmount);
+    ghostOn        = parameters.getRawParameterValue (ParamIDs::ghostOn);
+    ghostRate      = parameters.getRawParameterValue (ParamIDs::ghostRate);
+    ghostDensity   = parameters.getRawParameterValue (ParamIDs::ghostDensity);
+    ghostRange     = parameters.getRawParameterValue (ParamIDs::ghostRange);
     reverbType    = parameters.getRawParameterValue (ParamIDs::reverbType);
     shimmer       = parameters.getRawParameterValue (ParamIDs::shimmer);
     freeze        = parameters.getRawParameterValue (ParamIDs::freeze);
@@ -56,6 +63,10 @@ void MugenSpaceDrumProcessor::prepareToPlay (double sampleRate, int)
 
     synth.setCurrentPlaybackSampleRate (sampleRate);
     scaleEngine.prepare();
+    ghostEngine.prepare (sampleRate);
+    expressionSmoothed.reset (sampleRate, 0.08);
+    modWheel = pressure = 0.0f;
+    heldNoteCount = 0;
     motion.prepare (sampleRate);
     ambience.prepare (sampleRate);
     keyboardState.reset();
@@ -92,6 +103,63 @@ void MugenSpaceDrumProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
                          juce::roundToInt (scaleMapping->load()),
                          juce::roundToInt (octave->load()));
 
+    // --- Tempo do projeto (para o delay sincronizado e as Ghost Notes) ------------
+    GhostEngine::HostTime hostTime;
+    if (auto* host = getPlayHead())
+    {
+        if (auto position = host->getPosition())
+        {
+            if (auto bpm = position->getBpm())
+                if (*bpm > 20.0 && *bpm < 400.0)
+                    currentBpm = *bpm;
+
+            hostTime.isPlaying = position->getIsPlaying();
+            if (auto ppq = position->getPpqPosition())
+            {
+                hostTime.hasPosition = true;
+                hostTime.ppqPosition = *ppq;
+            }
+        }
+    }
+    hostTime.bpm = currentBpm;
+
+    // --- Expressão: roda de modulação (CC1) e aftertouch -----------------------------
+    for (const auto metadata : midiMessages)
+    {
+        const auto message = metadata.getMessage();
+        if (message.isController() && message.getControllerNumber() == 1)
+            modWheel = (float) message.getControllerValue() / 127.0f;
+        else if (message.isChannelPressure())
+            pressure = (float) message.getChannelPressureValue() / 127.0f;
+        else if (message.isAftertouch())
+            pressure = juce::jmax (pressure * 0.5f, (float) message.getAfterTouchValue() / 127.0f);
+        else if (message.isNoteOn())
+            ++heldNoteCount;
+        else if (message.isNoteOff())
+            heldNoteCount = juce::jmax (0, heldNoteCount - 1);
+    }
+
+    // Sem teclas premidas, o aftertouch volta a zero (alguns teclados não o enviam).
+    if (heldNoteCount == 0)
+        pressure = 0.0f;
+
+    expressionSmoothed.setTargetValue (juce::jlimit (0.0f, 1.0f, modWheel * wheelAmount->load()
+                                                               + pressure * pressureAmount->load()));
+    expressionSmoothed.skip (numSamples);
+    const float expression = expressionSmoothed.getCurrentValue();
+    expressionLevel.store (expression);
+
+    // --- Ghost Notes: padrões generativos dentro da escala ----------------------------
+    GhostEngine::Settings ghost;
+    ghost.enabled      = ghostOn->load() > 0.5f;
+    ghost.beatsPerStep = GhostEngine::rateBeats (juce::roundToInt (ghostRate->load()));
+    ghost.density      = ghostDensity->load();
+    ghost.rangeOctaves = juce::roundToInt (ghostRange->load());
+    ghost.root         = juce::roundToInt (scaleRoot->load());
+    ghost.scale        = juce::roundToInt (scaleType->load());
+    ghostEngine.process (midiMessages, numSamples, ghost, hostTime);
+    ghostActive.store (ghost.enabled && heldNoteCount > 0);
+
     for (const auto metadata : midiMessages)
     {
         if (metadata.getMessage().isNoteOn())
@@ -106,18 +174,14 @@ void MugenSpaceDrumProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
     // --- Motion (coro suave + movimento estéreo) -------------------------------
     MotionEngine::Settings motionSettings;
-    motionSettings.depth  = motionDepth->load();
+    // A expressão abre o movimento (até ao máximo)
+    const float baseDepth = motionDepth->load();
+    motionSettings.depth  = baseDepth + (1.0f - baseDepth) * expression * 0.9f;
     motionSettings.rateHz = motionRate->load();
     motionSettings.width  = width->load();
     motion.processMotion (buffer, motionSettings);
 
     // --- Delay + Reverb ----------------------------------------------------------
-    // Tempo do projeto (BPM) para o delay sincronizado.
-    if (auto* host = getPlayHead())
-        if (auto position = host->getPosition())
-            if (auto bpm = position->getBpm())
-                if (*bpm > 20.0 && *bpm < 400.0)
-                    currentBpm = *bpm;
 
     AmbienceEngine::Settings settings;
     settings.delayMix      = delayMix->load();
@@ -136,7 +200,9 @@ void MugenSpaceDrumProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     settings.reverb.type    = juce::roundToInt (reverbType->load());
     settings.reverb.size    = reverbSize->load();
     settings.reverb.mix     = reverbMix->load();
-    settings.reverb.shimmer = shimmer->load();
+    // ... e o brilho celestial do shimmer
+    const float baseShimmer = shimmer->load();
+    settings.reverb.shimmer = baseShimmer + (1.0f - baseShimmer) * expression * 0.85f;
     settings.reverb.freeze  = freeze->load() > 0.5f;
     ambience.process (buffer, settings);
 

@@ -11,7 +11,7 @@ namespace
     const juce::Rectangle<int> sidebarArea     { 0,    40,  264,  760 };
     const juce::Rectangle<int> headerBandArea  { 264,  40,  1016, 110 };
     const juce::Rectangle<int> patchDisplayArea{ 562,  100, 420,  38 };
-    const juce::Rectangle<int> tabRowArea      { 397,  158, 750,  32 };
+    const juce::Rectangle<int> tabRowArea      { 276,  158, 992,  32 };
     const juce::Rectangle<int> leftPanelArea   { 276,  198, 220,  438 };
     const juce::Rectangle<int> stageArea       { 508,  198, 436,  438 };
     const juce::Rectangle<int> rightPanelArea  { 956,  198, 220,  438 };
@@ -713,6 +713,169 @@ public:
 };
 
 // ==============================================================================
+//  Estrelas cadentes — passam pelo fundo e atravessam os painéis em transparência
+// ==============================================================================
+class ShootingStars : public juce::Component,
+                      private juce::Timer
+{
+public:
+    struct Glass
+    {
+        juce::Rectangle<int> area;
+        float visibility;   // 1 = fundo (brilho total), 0 = não aparece
+    };
+
+    ShootingStars()
+    {
+        setInterceptsMouseClicks (false, false);
+        startTimerHz (60);
+    }
+
+    ~ShootingStars() override { stopTimer(); }
+
+    void setGlassAreas (std::vector<Glass> areas) { glass = std::move (areas); }
+
+    void setActive (bool shouldShow)
+    {
+        active = shouldShow;
+        if (! active)
+        {
+            for (auto& m : meteors)
+                m.alive = false;
+            repaint();
+        }
+    }
+
+    void paint (juce::Graphics& g) override
+    {
+        for (const auto& m : meteors)
+        {
+            if (! m.alive)
+                continue;
+
+            // 1) Brilho total por cima do fundo (fora dos painéis)
+            g.saveState();
+            for (const auto& gl : glass)
+                g.excludeClipRegion (gl.area);
+            drawMeteor (g, m, 1.0f);
+            g.restoreState();
+
+            // 2) Dentro dos painéis: mais suave, como se passasse por trás de vidro
+            for (const auto& gl : glass)
+            {
+                if (gl.visibility <= 0.0f || ! gl.area.toFloat().intersects (m.bounds()))
+                    continue;
+                g.saveState();
+                g.reduceClipRegion (gl.area);
+                drawMeteor (g, m, gl.visibility);
+                g.restoreState();
+            }
+        }
+    }
+
+private:
+    struct Meteor
+    {
+        bool alive = false;
+        juce::Point<float> head, direction;
+        float speed = 700.0f, length = 200.0f, life = 0.0f, duration = 1.2f, thickness = 1.6f;
+        juce::Colour colour;
+
+        juce::Point<float> tail() const
+        {
+            const float envelope = std::sin (juce::MathConstants<float>::pi * juce::jlimit (0.0f, 1.0f, life / duration));
+            return head - direction * (length * (0.35f + 0.65f * envelope));
+        }
+
+        juce::Rectangle<float> bounds() const
+        {
+            return juce::Rectangle<float> (head, tail()).expanded (14.0f);
+        }
+    };
+
+    static void drawMeteor (juce::Graphics& g, const Meteor& m, float visibility)
+    {
+        const float envelope = std::sin (juce::MathConstants<float>::pi * juce::jlimit (0.0f, 1.0f, m.life / m.duration));
+        const float alpha = envelope * visibility;
+        if (alpha <= 0.01f)
+            return;
+
+        const auto tail = m.tail();
+        const juce::Line<float> line (tail, m.head);
+
+        // Brilho largo
+        g.setGradientFill (juce::ColourGradient (m.colour.withAlpha (0.0f), tail, m.colour.withAlpha (0.28f * alpha), m.head, false));
+        g.drawLine (line, m.thickness * 5.0f);
+
+        // Rasto fino
+        g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.0f), tail, juce::Colours::white.withAlpha (0.95f * alpha), m.head, false));
+        g.drawLine (line, m.thickness);
+
+        // Cabeça luminosa
+        g.setColour (m.colour.withAlpha (0.35f * alpha));
+        g.fillEllipse (juce::Rectangle<float> (m.thickness * 7.0f, m.thickness * 7.0f).withCentre (m.head));
+        g.setColour (juce::Colours::white.withAlpha (alpha));
+        g.fillEllipse (juce::Rectangle<float> (m.thickness * 2.2f, m.thickness * 2.2f).withCentre (m.head));
+    }
+
+    void spawn()
+    {
+        for (auto& m : meteors)
+        {
+            if (m.alive)
+                continue;
+
+            const bool goingRight = random.nextFloat() < 0.65f;
+            const float angle = juce::degreesToRadians (18.0f + random.nextFloat() * 22.0f);
+            m.direction = { (goingRight ? 1.0f : -1.0f) * std::cos (angle), std::sin (angle) };
+            m.head = { random.nextFloat() * (float) getWidth(), random.nextFloat() * (float) getHeight() * 0.55f };
+            m.speed = 650.0f + random.nextFloat() * 450.0f;
+            m.length = 140.0f + random.nextFloat() * 150.0f;
+            m.duration = 0.9f + random.nextFloat() * 0.7f;
+            m.life = 0.0f;
+
+            const bool fireball = random.nextFloat() < 0.12f;
+            m.thickness = fireball ? 2.6f : 1.3f + random.nextFloat() * 0.6f;
+            const float hue = random.nextFloat();
+            m.colour = hue < 0.5f ? MugenColours::blue : (hue < 0.85f ? MugenColours::violet : juce::Colour (0xffbfefff));
+            m.alive = true;
+            return;
+        }
+    }
+
+    void timerCallback() override
+    {
+        if (! active || ! isShowing())
+            return;
+
+        constexpr float dt = 1.0f / 60.0f;
+
+        // Em média uma estrela cadente a cada ~3 segundos (às vezes duas seguidas)
+        if (random.nextFloat() < dt / 3.0f)
+            spawn();
+
+        for (auto& m : meteors)
+        {
+            if (! m.alive)
+                continue;
+
+            const auto before = m.bounds();
+            m.head += m.direction * (m.speed * dt);
+            m.life += dt;
+            if (m.life >= m.duration)
+                m.alive = false;
+
+            repaint (before.getUnion (m.bounds()).getSmallestIntegerContainer());
+        }
+    }
+
+    std::array<Meteor, 4> meteors;
+    std::vector<Glass> glass;
+    juce::Random random;
+    bool active = true;
+};
+
+// ==============================================================================
 //  Palco central: orbe + carrossel de presets animado + etiquetas do som
 // ==============================================================================
 class PresetStage : public juce::Component,
@@ -839,6 +1002,34 @@ private:
         const juce::String counter = (index >= 0 ? juce::String (index + 1).paddedLeft ('0', 2) : juce::String ("--"))
                                    + " / " + juce::String ((int) entries.size()).paddedLeft ('0', 2);
         g.drawText ("PRESET " + counter, bar, juce::Justification::centredRight);
+
+        // Ghost Notes e expressão ao centro
+        const bool ghostOn = processor.parameters.getRawParameterValue (ParamIDs::ghostOn)->load() > 0.5f;
+        const bool ghostPlaying = processor.ghostActive.load();
+        const auto pill = juce::Rectangle<float> (60.0f, 18.0f).withCentre ({ (float) bar.getCentreX() - 46.0f, (float) bar.getCentreY() });
+        if (ghostPlaying)
+        {
+            g.setColour (MugenColours::violet.withAlpha (0.25f + 0.25f * pulse));
+            g.fillRoundedRectangle (pill.expanded (3.0f), 11.0f);
+        }
+        g.setColour (ghostOn ? MugenColours::violet : MugenColours::knobTrack);
+        g.drawRoundedRectangle (pill, 9.0f, 1.0f);
+        g.setColour (ghostOn ? juce::Colours::white : MugenColours::textDim.withAlpha (0.6f));
+        g.setFont (font (9.5f, true, 0.25f));
+        g.drawText ("GHOST", pill, juce::Justification::centred);
+
+        const float expr = processor.expressionLevel.load();
+        const auto meter = juce::Rectangle<float> (70.0f, 4.0f).withCentre ({ (float) bar.getCentreX() + 52.0f, (float) bar.getCentreY() });
+        g.setColour (MugenColours::textDim);
+        g.drawText ("EXPR", meter.withX (meter.getX() - 36.0f).withWidth (32.0f).withHeight (18.0f).withCentre ({ meter.getX() - 20.0f, meter.getCentreY() }),
+                    juce::Justification::centredRight);
+        g.setColour (MugenColours::knobTrack);
+        g.fillRoundedRectangle (meter, 2.0f);
+        if (expr > 0.005f)
+        {
+            g.setGradientFill (juce::ColourGradient (MugenColours::violet, meter.getX(), 0.0f, MugenColours::blue, meter.getRight(), 0.0f, false));
+            g.fillRoundedRectangle (meter.withWidth (meter.getWidth() * expr), 2.0f);
+        }
     }
 
     void drawCarousel (juce::Graphics& g)
@@ -996,6 +1187,11 @@ public:
         makeKnob (width,       ParamIDs::width,         "Width");
         makeKnob (octave,      ParamIDs::octave,        "Octave");
         makeKnob (tune,        ParamIDs::fineTune,      "Tune");
+        makeKnob (ghostDensity, ParamIDs::ghostDensity, "Density");
+        makeKnob (ghostRange,   ParamIDs::ghostRange,   "Range");
+        makeKnob (velocitySens, ParamIDs::velocitySens, "Velocity");
+        makeKnob (wheelAmount,  ParamIDs::wheelAmount,  "Mod Wheel");
+        makeKnob (pressureAmount, ParamIDs::pressureAmount, "Aftertouch");
 
         // Fader do volume (faixa OUTPUT)
         volumeFader.setSliderStyle (juce::Slider::LinearVertical);
@@ -1019,11 +1215,13 @@ public:
         makeSelector (mappingSelector,  ScaleEngine::mappingNames(), ParamIDs::scaleMapping);
         makeToggle (syncButton,   "SYNC",   ParamIDs::delaySync);
         makeToggle (freezeButton, "FREEZE", ParamIDs::freeze);
+        makeToggle (ghostButton,  "GHOST ON", ParamIDs::ghostOn);
+        makeSelector (ghostRateSelector, GhostEngine::rateNames(), ParamIDs::ghostRate);
 
         // --- Painéis ------------------------------------------------------------------
         setupPanels();
 
-        const juce::StringArray tabNames { "INSTRUMENT", "RESONANCE", "AMBIENCE", "MOTION", "SCALE & TUNING" };
+        const juce::StringArray tabNames { "INSTRUMENT", "RESONANCE", "AMBIENCE", "MOTION", "GHOST & EXPRESSION", "SCALE & TUNING" };
         for (int i = 0; i < tabNames.size(); ++i)
         {
             auto& tab = tabs[(size_t) i];
@@ -1051,9 +1249,32 @@ public:
             stars.push_back ({ (float) headerBandArea.getX() + random.nextFloat() * (float) headerBandArea.getWidth(),
                                (float) headerBandArea.getY() + random.nextFloat() * (float) headerBandArea.getHeight() });
 
-        const int savedTab = juce::jlimit (0, 4, (int) processor.parameters.state.getProperty ("uiTab", 0));
+        // Campo de estrelas no fundo do corpo (sempre igual)
+        for (int i = 0; i < 220; ++i)
+            bodyStars.push_back ({ 264.0f + random.nextFloat() * 1016.0f, 150.0f + random.nextFloat() * 650.0f,
+                                   random.nextFloat() });
+
+        const int savedTab = juce::jlimit (0, (int) tabs.size() - 1, (int) processor.parameters.state.getProperty ("uiTab", 0));
         tabs[(size_t) savedTab].setToggleState (true, juce::dontSendNotification);
         showPage (savedTab);
+
+        // Estrelas cadentes por cima de tudo (passam pelo fundo e, suaves, pelos painéis)
+        shootingStars.setGlassAreas ({ { sidebarArea, 0.45f }, { leftPanelArea, 0.35f }, { rightPanelArea, 0.35f },
+                                       { stageArea, 0.6f }, { outputStripArea, 0.35f }, { macroArea, 0.3f },
+                                       { patchDisplayArea, 0.25f }, { tabRowArea, 0.4f }, { keyboardArea, 0.0f } });
+        addAndMakeVisible (shootingStars);
+
+        starsButton.setButtonText ("STARS");
+        starsButton.setClickingTogglesState (true);
+        starsButton.setToggleState ((bool) processor.parameters.state.getProperty ("uiStars", true), juce::dontSendNotification);
+        starsButton.onClick = [this]
+        {
+            const bool on = starsButton.getToggleState();
+            processor.parameters.state.setProperty ("uiStars", on, nullptr);
+            shootingStars.setActive (on);
+        };
+        shootingStars.setActive (starsButton.getToggleState());
+        addAndMakeVisible (starsButton);
 
         presetChanged();
         startTimerHz (30);
@@ -1063,9 +1284,21 @@ public:
 
     void paint (juce::Graphics& g) override
     {
-        // Corpo
+        // Corpo: fundo profundo com nebulosas e estrelas
         g.setColour (MugenColours::body);
         g.fillAll();
+        g.setGradientFill (juce::ColourGradient (MugenColours::violet.withAlpha (0.10f), 520.0f, 300.0f,
+                                                 MugenColours::violet.withAlpha (0.0f), 1100.0f, 300.0f, true));
+        g.fillRect (getLocalBounds());
+        g.setGradientFill (juce::ColourGradient (MugenColours::blue.withAlpha (0.07f), 1150.0f, 720.0f,
+                                                 MugenColours::blue.withAlpha (0.0f), 1150.0f, 300.0f, true));
+        g.fillRect (getLocalBounds());
+        for (const auto& star : bodyStars)
+        {
+            g.setColour (juce::Colours::white.withAlpha (0.06f + 0.3f * star.z * star.z));
+            const float size = 0.8f + 1.2f * star.z;
+            g.fillEllipse (star.x, star.y, size, size);
+        }
 
         // Barra de topo
         g.setColour (MugenColours::topBar);
@@ -1081,7 +1314,7 @@ public:
         g.drawText ("SPACE DRUM", 82, 0, 120, 40, juce::Justification::centredLeft);
 
         g.setFont (font (11.0f));
-        g.drawText ("v" JucePlugin_VersionString, 1080, 0, 80, 40, juce::Justification::centredRight);
+        g.drawText ("v" JucePlugin_VersionString, 1090, 0, 70, 40, juce::Justification::centredRight);
         g.drawText ("MIDI", ledBounds.getX() - 40, 0, 34, 40, juce::Justification::centredRight);
         g.setColour (MugenColours::knobTrack);
         g.fillEllipse (ledBounds.toFloat());
@@ -1163,6 +1396,8 @@ public:
         }
 
         stage.setBounds (stageArea);
+        shootingStars.setBounds (getLocalBounds());
+        starsButton.setBounds (1010, 9, 64, 22);
 
         // Faixa OUT: fader do volume + knob Width
         auto output = outputStripArea.reduced (4, 8).withTrimmedTop (30);
@@ -1316,7 +1551,13 @@ private:
         fillPanel (motion.left, "MOVEMENT", "Slow hypnotic motion", {}, { &depth, &rate });
         fillPanel (motion.right, "STEREO FIELD", "Left and right movement", {}, {}, &motionScope);
 
-        auto& scalePage = pages[4];
+        auto& ghostPage = pages[4];
+        fillPanel (ghostPage.left, "GHOST NOTES", "Hold a note: patterns play in the scale",
+                   { { &ghostButton.button, &ghostRateSelector.box } }, { &ghostDensity, &ghostRange });
+        fillPanel (ghostPage.right, "EXPRESSION", "Wheel & aftertouch open Shimmer + Motion",
+                   {}, { &velocitySens, &wheelAmount, &pressureAmount });
+
+        auto& scalePage = pages[5];
         fillPanel (scalePage.left, "SCALE", "Every key plays the scale",
                    { { &rootSelector.box, &mappingSelector.box }, { &scaleSelector.box } }, { &octave, &tune });
         fillPanel (scalePage.right, "SCALE MAP", "Notes of the chosen scale", {}, {}, &scaleCircle);
@@ -1429,7 +1670,8 @@ private:
 
     Knob character, brightness, blend, resonance, decay,
          delayMix, delayTime, feedback, reverbMix, reverbSize, shimmer,
-         depth, rate, width, octave, tune;
+         depth, rate, width, octave, tune,
+         ghostDensity, ghostRange, velocitySens, wheelAmount, pressureAmount;
 
     juce::Slider volumeFader;
     juce::Label volumeLabel;
@@ -1438,7 +1680,8 @@ private:
     std::array<Macro, 4> macros;
 
     Selector sampleSelector, divisionSelector, reverbSelector, rootSelector, scaleSelector, mappingSelector;
-    Toggle syncButton, freezeButton;
+    Toggle syncButton, freezeButton, ghostButton;
+    Selector ghostRateSelector;
 
     PatchBrowser browser;
     PatchDisplay patchDisplay;
@@ -1448,8 +1691,13 @@ private:
     ScaleKeyboard keyboard;
     PresetStage stage;
 
-    std::array<TabPanels, 5> pages;
-    std::array<juce::TextButton, 5> tabs;
+    std::array<TabPanels, 6> pages;
+    std::array<juce::TextButton, 6> tabs;
+
+    ShootingStars shootingStars;
+    juce::TextButton starsButton;
+    struct BodyStar { float x, y, z; };
+    std::vector<BodyStar> bodyStars;
 
     std::unique_ptr<juce::FileChooser> chooser;
 

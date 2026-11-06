@@ -40,8 +40,14 @@ void SpaceDrumVoice::startNote (int midiNoteNumber, float velocity,
     const double blend          = parameters.blend->load();
     const int    sampleType     = juce::roundToInt (parameters.sampleType->load());
 
-    const double vel         = juce::jlimit (0.0, 1.0, (double) velocity);
-    const double brightness  = brightnessKnob * (0.55 + 0.45 * vel); // tocar mais forte = mais brilho
+    // --- Velocidade e expressão ----------------------------------------------------
+    // Sensibilidade 0: todas as notas iguais. Sensibilidade 1: tocar suave dá um som
+    // abafado e "fofinho" (baqueta macia, ataque redondo); tocar forte dá brilho e metal.
+    const double sens        = parameters.velocitySens != nullptr ? (double) parameters.velocitySens->load() : 0.75;
+    const double rawVel      = juce::jlimit (0.0, 1.0, (double) velocity);
+    const double vel         = 1.0 - sens * (1.0 - rawVel);   // velocidade "sentida"
+    const double timbreCurve = (1.0 - sens) + sens * (0.25 + 1.0 * rawVel * rawVel + 0.15 * rawVel);
+    const double brightness  = juce::jlimit (0.0, 1.0, brightnessKnob * timbreCurve + sens * 0.25 * (rawVel - 0.6));
     const double tuneRatio   = std::pow (2.0, (parameters.fineTune != nullptr ? parameters.fineTune->load() : 0.0) / 1200.0);
     const double fundamental = juce::MidiMessage::getMidiNoteInHertz (midiNoteNumber) * tuneRatio;
     const double twoPiOverSr = juce::MathConstants<double>::twoPi / sampleRate;

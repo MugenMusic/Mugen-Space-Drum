@@ -45,6 +45,17 @@ namespace ParamIDs
     inline constexpr const char* octave        = "octave";
     inline constexpr const char* fineTune      = "fineTune";
 
+    // Expressão (velocity, roda de modulação, aftertouch)
+    inline constexpr const char* velocitySens  = "velocitySens";
+    inline constexpr const char* wheelAmount   = "wheelAmount";
+    inline constexpr const char* pressureAmount= "pressureAmount";
+
+    // Ghost Notes (sequenciador generativo)
+    inline constexpr const char* ghostOn       = "ghostOn";
+    inline constexpr const char* ghostRate     = "ghostRate";
+    inline constexpr const char* ghostDensity  = "ghostDensity";
+    inline constexpr const char* ghostRange    = "ghostRange";
+
     // Saída
     inline constexpr const char* volume        = "volume";
 }

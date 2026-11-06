@@ -2,6 +2,7 @@
 #include "SampleBank.h"
 #include "ReverbEngine.h"
 #include "ScaleEngine.h"
+#include "GhostEngine.h"
 
 namespace
 {
@@ -169,6 +170,28 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
                                const int cents = juce::roundToInt (v);
                                return (cents > 0 ? "+" : "") + juce::String (cents) + " ct";
                            })));
+
+    // --- Expressão -------------------------------------------------------------
+    layout.add (makeParam (ParamIDs::velocitySens, "Velocity",
+                           { 0.0f, 1.0f }, 0.75f, percent()));
+    layout.add (makeParam (ParamIDs::wheelAmount, "Mod Wheel",
+                           { 0.0f, 1.0f }, 0.7f, percent()));
+    layout.add (makeParam (ParamIDs::pressureAmount, "Aftertouch",
+                           { 0.0f, 1.0f }, 0.7f, percent()));
+
+    // --- Ghost Notes ----------------------------------------------------------
+    layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { ParamIDs::ghostOn, 1 },
+                                                            "Ghost Notes", false));
+    layout.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { ParamIDs::ghostRate, 1 },
+                                                              "Ghost Rate", GhostEngine::rateNames(), 2));
+    layout.add (makeParam (ParamIDs::ghostDensity, "Ghost Density",
+                           { 0.0f, 1.0f }, 0.55f, percent()));
+    layout.add (std::make_unique<juce::AudioParameterInt> (juce::ParameterID { ParamIDs::ghostRange, 1 },
+                                                           "Ghost Range", 1, 3, 2,
+                                                           juce::AudioParameterIntAttributes().withStringFromValueFunction ([] (int v, int)
+                                                           {
+                                                               return juce::String (v) + " oct";
+                                                           })));
 
     // --- Saída ----------------------------------------------------------------
     layout.add (makeParam (ParamIDs::volume, "Volume",

@@ -9,6 +9,7 @@
 #include "MotionEngine.h"
 #include "ScaleEngine.h"
 #include "PresetManager.h"
+#include "GhostEngine.h"
 
 // ==============================================================================
 //  PluginProcessor
@@ -56,6 +57,9 @@ public:
 
     // Últimas amostras de saída (mono), para o anel de onda à volta do orbe.
     // Só leitura na interface; atómicos para não haver bloqueios na thread de áudio.
+    std::atomic<float> expressionLevel { 0.0f }; // roda + aftertouch (0..1), para a interface
+    std::atomic<bool>  ghostActive { false };     // Ghost Notes ligado e com notas seguradas
+
     static constexpr int scopeSize = 1024;
     std::array<std::atomic<float>, scopeSize> scopeBuffer {};
     std::atomic<int> scopeWriteIndex { 0 };
@@ -66,6 +70,7 @@ private:
     SampleBank sampleBank;
     juce::Synthesiser synth;
     ScaleEngine scaleEngine;
+    GhostEngine ghostEngine;
     MotionEngine motion;
     AmbienceEngine ambience;
     juce::SmoothedValue<float> outputGain;
@@ -88,6 +93,18 @@ private:
     std::atomic<float>* scaleType     = nullptr;
     std::atomic<float>* scaleMapping  = nullptr;
     std::atomic<float>* octave        = nullptr;
+
+    std::atomic<float>* wheelAmount    = nullptr;
+    std::atomic<float>* pressureAmount = nullptr;
+    std::atomic<float>* ghostOn        = nullptr;
+    std::atomic<float>* ghostRate      = nullptr;
+    std::atomic<float>* ghostDensity   = nullptr;
+    std::atomic<float>* ghostRange     = nullptr;
+
+    // Expressão em tempo real
+    float modWheel = 0.0f, pressure = 0.0f;
+    juce::SmoothedValue<float> expressionSmoothed;
+    int heldNoteCount = 0;
 
     double currentBpm = 120.0;
 

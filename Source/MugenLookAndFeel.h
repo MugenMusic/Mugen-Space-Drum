@@ -272,7 +272,7 @@ public:
         const bool isTab = button.getProperties().contains ("tab");
         const bool on = button.getToggleState();
 
-        g.setFont (uiFont (isTab ? 12.5f : 12.0f, true, 0.12f));
+        g.setFont (uiFont (isTab ? 11.5f : 12.0f, true, 0.12f));
         g.setColour (on ? juce::Colours::white : (isTab ? MugenColours::textDim : MugenColours::text.withAlpha (0.85f)));
         g.drawText (button.getButtonText(), button.getLocalBounds().reduced (4, 0), juce::Justification::centred, true);
     }
