@@ -2,7 +2,7 @@
 
 Instrumento virtual VST3 inspirado nos Space Drums e handpans: um som etéreo, hipnótico e suave, feito por síntese modal, com delay e reverb atmosféricos.
 
-**Made by Mugen** · versão 0.8.1
+**Made by Mugen** · versão 0.8.2
 
 ## Controlos
 

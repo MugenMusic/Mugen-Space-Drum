@@ -1,5 +1,21 @@
 # Changelog — Mugen Space Drum
 
+## v0.8.2 — Correções e equilíbrio
+
+- **Logótipo central**: passa a dizer **SINGULARITY** (3D, com espaçamento ajustado a palavras longas);
+  a arte de cada tema (planeta, sol, lua) foi afastada para a direita para lhe dar espaço.
+- **Corrigido o "pitch estranho" ao mudar de preset**: o delay e o reverb já não esticam as linhas de atraso
+  (efeito de fita a mudar de velocidade, que chegava a subir os ecos mais de duas oitavas).
+  Em saltos grandes (outra divisão do delay, outro tipo de sala, tamanho muito diferente) o efeito desvanece,
+  muda em silêncio e volta. Pequenos ajustes nos knobs continuam suaves.
+- **Presets etéreos equilibrados**: o reverb Deep Space passa de 8–25 s para 5–14 s de cauda; os presets
+  Celestial Flow, Nebula Drift, Deep Space Choir, Ocean Floor, Frozen Cathedral, Aurora Veil, Glass Moon,
+  Dream Sequencer, Starfall e Lunar Steps têm menos reverb/shimmer/feedback (todas as caudas descem 40 dB
+  entre 8 e 12 s, em vez de ficarem a soar mais de 16 s).
+- **Volumes dos presets igualados** (antes havia ~15 dB de diferença; agora todos dentro de ±0,5 dB).
+- **Sem cliques com muitas notas**: 32 vozes (antes 16) e anti-clique quando uma voz é reutilizada ou cortada
+  pelo DAW (teste com Ghost Notes a 1/16 e caudas de 10 s: de 52 cliques para 0).
+
 ## v0.8.1 — Acabamento premium
 
 - **Logótipo MUGEN 3D**: letras esculpidas com extrusão em 16 camadas (profundidade real), face cromada
