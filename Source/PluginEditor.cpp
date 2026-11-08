@@ -729,7 +729,7 @@ public:
 };
 
 // ==============================================================================
-//  Logótipo MUGEN 3D (animado: brilho que atravessa as letras e cintilações)
+//  Logótipo SINGULARITY 3D (animado: brilho que atravessa as letras e cintilações)
 // ==============================================================================
 class MugenLogo : public juce::Component,
                   private juce::Timer
@@ -746,7 +746,7 @@ public:
     void paint (juce::Graphics& g) override
     {
         const MugenArt::Palette palette { MugenColours::violet, MugenColours::blue, MugenColours::text, MugenColours::screen };
-        MugenArt::drawLogo3D (g, getLocalBounds().toFloat().reduced (8.0f, 0.0f), "MUGEN", palette, time);
+        MugenArt::drawLogo3D (g, getLocalBounds().toFloat().reduced (8.0f, 0.0f), "SINGULARITY", palette, time);
     }
 
 private:
@@ -1501,7 +1501,7 @@ public:
         if (theme == MugenTheme::nebula)
         {
             // Planeta com anel, discreto, à direita
-            const juce::Point<float> c (band.getRight() - 200.0f, band.getCentreY() - 6.0f);
+            const juce::Point<float> c (band.getRight() - 118.0f, band.getCentreY() - 6.0f);
             g.setGradientFill (juce::ColourGradient (MugenColours::violet.withAlpha (0.45f), c.x, c.y,
                                                      MugenColours::violet.withAlpha (0.0f), c.x + 90.0f, c.y, true));
             g.fillEllipse (juce::Rectangle<float> (180.0f, 180.0f).withCentre (c));
@@ -1546,7 +1546,7 @@ public:
         else if (theme == MugenTheme::eclipse)
         {
             // Sol negro com coroa dourada e raios
-            const juce::Point<float> c (band.getRight() - 200.0f, band.getCentreY() - 4.0f);
+            const juce::Point<float> c (band.getRight() - 118.0f, band.getCentreY() - 4.0f);
             constexpr float radius = 30.0f;
             g.setGradientFill (juce::ColourGradient (MugenColours::violet.withAlpha (0.65f), c.x, c.y,
                                                      MugenColours::blue.withAlpha (0.0f), c.x + 110.0f, c.y, true));
@@ -1577,7 +1577,7 @@ public:
         else if (theme == MugenTheme::sakura)
         {
             // Lua cheia e pétalas de cerejeira a flutuar
-            const juce::Point<float> c (band.getRight() - 200.0f, band.getCentreY() - 6.0f);
+            const juce::Point<float> c (band.getRight() - 118.0f, band.getCentreY() - 6.0f);
             g.setGradientFill (juce::ColourGradient (MugenColours::blue.withAlpha (0.5f), c.x, c.y,
                                                      MugenColours::blue.withAlpha (0.0f), c.x + 90.0f, c.y, true));
             g.fillEllipse (juce::Rectangle<float> (180.0f, 180.0f).withCentre (c));
@@ -1643,7 +1643,7 @@ public:
         }
 
         stage.setBounds (stageArea);
-        logo.setBounds (518, 44, 508, 56);
+        logo.setBounds (412, 44, 660, 56);
         shootingStars.setBounds (getLocalBounds());
         starsButton.setBounds (1010, 9, 64, 22);
         themeSelector.setBounds (850, 9, 150, 22);

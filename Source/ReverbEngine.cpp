@@ -17,7 +17,7 @@ namespace
         { 0.45f, 0.4f,  1.4f,  4.0f,  6000.0f, 0.55f, 0.15f, 0.60f },  // Room
         { 1.00f, 1.5f,  4.0f,  18.0f, 7000.0f, 0.65f, 0.35f, 0.35f },  // Hall
         { 1.50f, 3.0f,  8.0f,  32.0f, 5000.0f, 0.70f, 0.50f, 0.25f },  // Cathedral
-        { 2.10f, 8.0f, 25.0f,  55.0f, 8000.0f, 0.75f, 0.90f, 0.15f }   // Deep Space
+        { 2.10f, 5.0f, 14.0f,  55.0f, 7500.0f, 0.75f, 0.90f, 0.15f }   // Deep Space
     }};
 
     // Comprimentos base das 8 linhas (ms), escolhidos para não terem múltiplos comuns.
@@ -88,8 +88,19 @@ void ReverbEngine::prepare (double sampleRate)
 
     lastType = -1;
     lastSize = -1.0f;
+    changeFadeState = 0;
+    changeFade = 1.0f;
+    changeFadeStep = 1.0f / (float) (0.06 * sampleRate);
 
     reset();
+}
+
+void ReverbEngine::snap (const Settings& settings)
+{
+    reset();
+    lastType = -1;     // força o reposicionamento imediato (sem deslizar)
+    lastSize = -1.0f;
+    updateTargets (settings);
 }
 
 void ReverbEngine::reset()
@@ -171,7 +182,23 @@ void ReverbEngine::process (float* left, float* right, int numSamples, const Set
     if (lines[0].buffer.empty())
         return;
 
-    updateTargets (settings);
+    // Mudança grande? Desvanece primeiro, muda em silêncio, depois volta.
+    const bool bigChange = lastType >= 0
+                        && (settings.type != lastType || std::abs (settings.size - lastSize) > 0.25f);
+    if (bigChange && changeFadeState != 1)
+        changeFadeState = 1;   // (também se chegar outra mudança a meio do regresso)
+
+    if (changeFadeState == 1)
+    {
+        Settings held = settings;   // durante o fade mantém a sala antiga
+        held.type = lastType;
+        held.size = lastSize;
+        updateTargets (held);
+    }
+    else
+    {
+        updateTargets (settings);
+    }
 
     const float shimmerHighpass = 1.0f - std::exp (-juce::MathConstants<float>::twoPi * 400.0f  / (float) currentSampleRate);
     const float shimmerLowpass  = 1.0f - std::exp (-juce::MathConstants<float>::twoPi * 6000.0f / (float) currentSampleRate);
@@ -181,7 +208,15 @@ void ReverbEngine::process (float* left, float* right, int numSamples, const Set
         const float freeze  = freezeAmount.getNextValue();
         const float inGain  = inputGain.getNextValue();
         const float shimmer = shimmerAmount.getNextValue();
-        const float wet     = wetGain.getNextValue();
+        if (changeFadeState == 1)
+            changeFade = juce::jmax (0.0f, changeFade - changeFadeStep);
+        else if (changeFadeState == 2)
+        {
+            changeFade = juce::jmin (1.0f, changeFade + changeFadeStep * 0.5f);
+            if (changeFade >= 1.0f)
+                changeFadeState = 0;
+        }
+        const float wet     = wetGain.getNextValue() * changeFade;
         const float dry     = dryGain.getNextValue();
         const float preDelay = preDelaySamples.getNextValue();
 
@@ -250,4 +285,11 @@ void ReverbEngine::process (float* left, float* right, int numSamples, const Set
         left[n]  = left[n]  * dry + wetLeft  * wet;
         right[n] = right[n] * dry + wetRight * wet;
     }
+
+    if (changeFadeState == 1 && changeFade <= 0.0f)
+    {
+        snap (settings);
+        changeFadeState = 2;
+    }
 }
+

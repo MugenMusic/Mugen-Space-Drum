@@ -37,35 +37,35 @@ namespace
 
     //  nome                  categoria     char  bright decay reson  sample blend   dMix sync div  fb     rev        rMix  rSize shim   mDep mRate width  root scale        map oct  tune volume
     const FactoryPreset factory[] = {
-        { "Celestial Flow",   "Celestial",  0.50f, 0.45f, 5.0f, 0.70f, shell, 0.35f, 0.25f, true, d8D, 0.45f, deepSpace, 0.45f, 0.75f, 0.45f, 0.35f, 0.12f, 1.30f, D, celticMinor, 0, 0, 0.0f, -6.0f },
-        { "Aurora Veil",      "Celestial",  0.85f, 0.60f, 7.0f, 0.80f, air,   0.50f, 0.20f, true, d4,  0.45f, cathedral, 0.50f, 0.80f, 0.60f, 0.50f, 0.08f, 1.60f, E, aegean,      0, 0, 0.0f, -7.0f },
-        { "Starlight Bells",  "Celestial",  1.00f, 0.70f, 6.0f, 0.60f, felt,  0.20f, 0.30f, true, d8,  0.40f, hall,      0.40f, 0.80f, 0.30f, 0.25f, 0.15f, 1.30f, C, majorPenta,  0, 0, 0.0f, -7.0f },
-        { "Nebula Drift",     "Celestial",  0.60f, 0.30f, 9.0f, 0.90f, air,   0.65f, 0.30f, true, d4D, 0.60f, deepSpace, 0.60f, 0.95f, 0.70f, 0.60f, 0.05f, 1.80f, A, kurd,        0, 0, 0.0f, -7.0f },
+        { "Celestial Flow",   "Celestial",  0.50f, 0.45f, 5.0f, 0.70f, shell, 0.35f, 0.25f, true, d8D, 0.40f, deepSpace, 0.40f, 0.65f, 0.35f, 0.35f, 0.12f, 1.30f, D, celticMinor, 0, 0, 0.0f, -5.5f},
+        { "Aurora Veil",      "Celestial",  0.85f, 0.60f, 7.0f, 0.80f, air,   0.50f, 0.20f, true, d4,  0.45f, cathedral, 0.42f, 0.70f, 0.45f, 0.50f, 0.08f, 1.60f, E, aegean,      0, 0, 0.0f, -8.5f},
+        { "Starlight Bells",  "Celestial",  1.00f, 0.70f, 6.0f, 0.60f, felt,  0.20f, 0.30f, true, d8,  0.40f, hall,      0.40f, 0.80f, 0.30f, 0.25f, 0.15f, 1.30f, C, majorPenta,  0, 0, 0.0f, -7.5f},
+        { "Nebula Drift",     "Celestial",  0.60f, 0.30f, 9.0f, 0.90f, air,   0.65f, 0.22f, true, d4D, 0.45f, deepSpace, 0.45f, 0.70f, 0.45f, 0.60f, 0.05f, 1.80f, A, kurd,        0, 0, 0.0f, -8.5f},
 
-        { "Warm Handpan",     "Organic",    0.50f, 0.40f, 4.5f, 0.50f, shell, 0.40f, 0.12f, true, d8,  0.30f, hall,      0.30f, 0.60f, 0.00f, 0.15f, 0.15f, 1.10f, D, celticMinor, 0, 0, 0.0f, -6.0f },
-        { "Hand Touch",       "Organic",    0.45f, 0.35f, 3.0f, 0.40f, hand,  0.55f, 0.10f, true, d8,  0.25f, room,      0.25f, 0.50f, 0.00f, 0.10f, 0.20f, 1.00f, D, kurd,        0, 0, 0.0f, -6.0f },
-        { "Felt Lullaby",     "Organic",    0.20f, 0.25f, 5.0f, 0.50f, felt,  0.50f, 0.20f, true, d4,  0.35f, hall,      0.40f, 0.70f, 0.15f, 0.25f, 0.10f, 1.20f, C, majorPenta,  0, 0, 0.0f, -6.0f },
-        { "Tongue Drum Garden","Organic",   0.00f, 0.40f, 3.5f, 0.35f, felt,  0.30f, 0.18f, true, d8D, 0.35f, room,      0.30f, 0.60f, 0.00f, 0.15f, 0.20f, 1.20f, G, pygmy,       0, 0, 0.0f, -6.0f },
+        { "Warm Handpan",     "Organic",    0.50f, 0.40f, 4.5f, 0.50f, shell, 0.40f, 0.12f, true, d8,  0.30f, hall,      0.30f, 0.60f, 0.00f, 0.15f, 0.15f, 1.10f, D, celticMinor, 0, 0, 0.0f, -3.5f},
+        { "Hand Touch",       "Organic",    0.45f, 0.35f, 3.0f, 0.40f, hand,  0.55f, 0.10f, true, d8,  0.25f, room,      0.25f, 0.50f, 0.00f, 0.10f, 0.20f, 1.00f, D, kurd,        0, 0, 0.0f, 3.0f},
+        { "Felt Lullaby",     "Organic",    0.20f, 0.25f, 5.0f, 0.50f, felt,  0.50f, 0.20f, true, d4,  0.35f, hall,      0.40f, 0.70f, 0.15f, 0.25f, 0.10f, 1.20f, C, majorPenta,  0, 0, 0.0f, -4.0f},
+        { "Tongue Drum Garden","Organic",   0.00f, 0.40f, 3.5f, 0.35f, felt,  0.30f, 0.18f, true, d8D, 0.35f, room,      0.30f, 0.60f, 0.00f, 0.15f, 0.20f, 1.20f, G, pygmy,       0, 0, 0.0f, -5.0f},
 
-        { "Pulse Temple",     "Rhythmic",   0.50f, 0.55f, 2.0f, 0.30f, hand,  0.40f, 0.35f, true, d16, 0.40f, room,      0.20f, 0.40f, 0.00f, 0.10f, 0.25f, 1.10f, D, hijaz,       0, 0, 0.0f, -6.0f },
-        { "Echo Steps",       "Rhythmic",   0.55f, 0.50f, 3.0f, 0.50f, shell, 0.30f, 0.45f, true, d8D, 0.55f, hall,      0.30f, 0.60f, 0.10f, 0.15f, 0.20f, 1.30f, E, minorPenta,  0, 0, 0.0f, -7.0f },
-        { "Desert Caravan",   "Rhythmic",   0.60f, 0.50f, 3.5f, 0.55f, hand,  0.35f, 0.30f, true, d8T, 0.40f, cathedral, 0.30f, 0.60f, 0.10f, 0.20f, 0.18f, 1.30f, E, hijaz,       0, 0, 0.0f, -6.0f },
+        { "Pulse Temple",     "Rhythmic",   0.50f, 0.55f, 2.0f, 0.30f, hand,  0.40f, 0.35f, true, d16, 0.40f, room,      0.20f, 0.40f, 0.00f, 0.10f, 0.25f, 1.10f, D, hijaz,       0, 0, 0.0f, 1.0f},
+        { "Echo Steps",       "Rhythmic",   0.55f, 0.50f, 3.0f, 0.50f, shell, 0.30f, 0.45f, true, d8D, 0.55f, hall,      0.30f, 0.60f, 0.10f, 0.15f, 0.20f, 1.30f, E, minorPenta,  0, 0, 0.0f, -3.5f},
+        { "Desert Caravan",   "Rhythmic",   0.60f, 0.50f, 3.5f, 0.55f, hand,  0.35f, 0.30f, true, d8T, 0.40f, cathedral, 0.30f, 0.60f, 0.10f, 0.20f, 0.18f, 1.30f, E, hijaz,       0, 0, 0.0f, -3.5f},
 
-        { "Frozen Cathedral", "Atmosphere", 0.70f, 0.40f, 10.0f,0.85f, air,   0.40f, 0.20f, true, d2,  0.50f, cathedral, 0.60f, 1.00f, 0.50f, 0.40f, 0.06f, 1.50f, D, celticMinor, 0, 0, 0.0f, -7.0f },
-        { "Deep Space Choir", "Atmosphere", 0.75f, 0.35f, 12.0f,1.00f, air,   0.75f, 0.15f, true, d1,  0.50f, deepSpace, 0.70f, 1.00f, 0.80f, 0.50f, 0.04f, 2.00f, C, aegean,      0,-1, 0.0f, -7.0f },
-        { "Ocean Floor",      "Atmosphere", 0.30f, 0.20f, 8.0f, 0.70f, air,   0.50f, 0.25f, true, d4D, 0.55f, deepSpace, 0.55f, 0.85f, 0.20f, 0.45f, 0.07f, 1.60f, A, kurd,        0,-1, 0.0f, -6.0f },
+        { "Frozen Cathedral", "Atmosphere", 0.70f, 0.40f, 10.0f,0.85f, air,   0.40f, 0.20f, true, d2,  0.50f, cathedral, 0.48f, 0.80f, 0.35f, 0.40f, 0.06f, 1.50f, D, celticMinor, 0, 0, 0.0f, -11.0f},
+        { "Deep Space Choir", "Atmosphere", 0.75f, 0.35f, 9.0f ,1.00f, air,   0.75f, 0.12f, true, d1,  0.40f, deepSpace, 0.48f, 0.72f, 0.50f, 0.50f, 0.04f, 2.00f, C, aegean,      0,-1, 0.0f, -9.0f},
+        { "Ocean Floor",      "Atmosphere", 0.30f, 0.20f, 8.0f, 0.70f, air,   0.50f, 0.20f, true, d4D, 0.45f, deepSpace, 0.45f, 0.65f, 0.15f, 0.45f, 0.07f, 1.60f, A, kurd,        0,-1, 0.0f, -9.5f},
 
-        { "Crystal Garden",   "Crystal",    0.95f, 0.65f, 5.0f, 0.55f, felt,  0.20f, 0.30f, true, d8,  0.45f, hall,      0.40f, 0.75f, 0.35f, 0.30f, 0.20f, 1.40f, G, major,       0, 0, 0.0f, -7.0f },
-        { "Glass Moon",       "Crystal",    1.00f, 0.50f, 8.0f, 0.75f, air,   0.30f, 0.25f, true, d4D, 0.50f, cathedral, 0.50f, 0.90f, 0.50f, 0.35f, 0.09f, 1.50f, B, minorPenta,  0, 0, 0.0f, -7.0f },
+        { "Crystal Garden",   "Crystal",    0.95f, 0.65f, 5.0f, 0.55f, felt,  0.20f, 0.30f, true, d8,  0.45f, hall,      0.40f, 0.75f, 0.35f, 0.30f, 0.20f, 1.40f, G, major,       0, 0, 0.0f, -8.0f},
+        { "Glass Moon",       "Crystal",    1.00f, 0.50f, 8.0f, 0.75f, air,   0.30f, 0.25f, true, d4D, 0.50f, cathedral, 0.42f, 0.75f, 0.40f, 0.35f, 0.09f, 1.50f, B, minorPenta,  0, 0, 0.0f, -8.0f},
 
         // --- Sequences: Ghost Notes e Arp já ligados (segura uma nota ou um acorde) ---------
         //  nome                  categoria     char  bright decay reson  sample blend   dMix sync div  fb     rev        rMix  rSize shim   mDep mRate width  root scale        map oct  tune volume  ghost mode       rate  dens   range
-        { "Dream Sequencer",  "Sequences",  0.50f, 0.42f, 4.5f, 0.70f, shell, 0.35f, 0.25f, true, d8D, 0.45f, deepSpace, 0.45f, 0.80f, 0.40f, 0.35f, 0.10f, 1.40f, D, celticMinor, 0, 0, 0.0f, -7.0f, true, ghostWalk, r8,   0.55f, 2 },
-        { "Zen Garden Walk",  "Sequences",  0.15f, 0.30f, 5.0f, 0.55f, felt,  0.45f, 0.15f, true, d4,  0.35f, hall,      0.40f, 0.70f, 0.15f, 0.20f, 0.08f, 1.20f, E, 33,          0, 0, 0.0f, -6.0f, true, ghostWalk, r4,   0.70f, 2 },
-        { "Starfall",         "Sequences",  0.90f, 0.60f, 6.0f, 0.75f, air,   0.25f, 0.30f, true, d8D, 0.50f, deepSpace, 0.55f, 0.95f, 0.65f, 0.45f, 0.12f, 1.70f, C, aegean,      0, 1, 0.0f, -8.0f, true, ghostWalk, r16,  0.45f, 3 },
-        { "Phrygian Caravan", "Sequences",  0.60f, 0.50f, 3.5f, 0.55f, hand,  0.40f, 0.30f, true, d8T, 0.40f, cathedral, 0.35f, 0.65f, 0.10f, 0.25f, 0.18f, 1.30f, E, 13,          0, 0, 0.0f, -6.0f, true, ghostWalk, r8T,  0.65f, 2 },
+        { "Dream Sequencer",  "Sequences",  0.50f, 0.42f, 4.5f, 0.70f, shell, 0.35f, 0.25f, true, d8D, 0.40f, deepSpace, 0.38f, 0.60f, 0.30f, 0.35f, 0.10f, 1.40f, D, celticMinor, 0, 0, 0.0f, -5.0f, true, ghostWalk, r8,   0.55f, 2 },
+        { "Zen Garden Walk",  "Sequences",  0.15f, 0.30f, 5.0f, 0.55f, felt,  0.45f, 0.15f, true, d4,  0.35f, hall,      0.40f, 0.70f, 0.15f, 0.20f, 0.08f, 1.20f, E, 33,          0, 0, 0.0f, -5.0f, true, ghostWalk, r4,   0.70f, 2 },
+        { "Starfall",         "Sequences",  0.90f, 0.60f, 6.0f, 0.75f, air,   0.25f, 0.25f, true, d8D, 0.42f, deepSpace, 0.42f, 0.65f, 0.45f, 0.45f, 0.12f, 1.70f, C, aegean,      0, 1, 0.0f, -9.5f, true, ghostWalk, r16,  0.45f, 3 },
+        { "Phrygian Caravan", "Sequences",  0.60f, 0.50f, 3.5f, 0.55f, hand,  0.40f, 0.30f, true, d8T, 0.40f, cathedral, 0.35f, 0.65f, 0.10f, 0.25f, 0.18f, 1.30f, E, 13,          0, 0, 0.0f, -2.0f, true, ghostWalk, r8T,  0.65f, 2 },
         { "Crystal Arpeggio", "Sequences",  1.00f, 0.60f, 5.0f, 0.60f, felt,  0.20f, 0.30f, true, d8,  0.45f, hall,      0.40f, 0.80f, 0.40f, 0.30f, 0.15f, 1.50f, A, minorPenta,  0, 0, 0.0f, -8.0f, true, arpUpDown, r16,  1.00f, 2 },
-        { "Lunar Steps",      "Sequences",  0.40f, 0.40f, 6.0f, 0.80f, air,   0.40f, 0.20f, true, d4D, 0.55f, deepSpace, 0.60f, 1.00f, 0.55f, 0.45f, 0.06f, 1.80f, F, 35,          0, 0, 0.0f, -7.0f, true, arpUp,     r8,   0.85f, 2 },
+        { "Lunar Steps",      "Sequences",  0.40f, 0.40f, 6.0f, 0.80f, air,   0.40f, 0.18f, true, d4D, 0.45f, deepSpace, 0.45f, 0.70f, 0.40f, 0.45f, 0.06f, 1.80f, F, 35,          0, 0, 0.0f, -9.0f, true, arpUp,     r8,   0.85f, 2 },
     };
 
     constexpr int numFactory = (int) (sizeof (factory) / sizeof (factory[0]));

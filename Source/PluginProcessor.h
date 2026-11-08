@@ -47,7 +47,7 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
-    static constexpr int maxVoices = 16;
+    static constexpr int maxVoices = 32;   // folga para Ghost Notes com caudas longas
 
     juce::AudioProcessorValueTreeState parameters;
     juce::MidiKeyboardState keyboardState;     // teclado no ecrã do plugin

@@ -39,5 +39,11 @@ private:
     juce::SmoothedValue<float> delayMixSmoothed;
     float feedbackFilterLeft = 0.0f, feedbackFilterRight = 0.0f, feedbackFilterCoef = 0.3f;
 
+    // Saltos grandes no tempo do delay (outra divisão, outro preset): os ecos desvanecem,
+    // o tempo muda em silêncio e voltam — sem o efeito de "fita a mudar de velocidade".
+    int   timeFadeState = 0;
+    float timeFade = 1.0f, timeFadeStep = 0.001f;
+    bool  hasTime = false;
+
     ReverbEngine reverb;
 };

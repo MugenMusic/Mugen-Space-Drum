@@ -36,6 +36,9 @@ public:
     void reset();
     void process (float* left, float* right, int numSamples, const Settings& settings);
 
+    /** Salta já para estas definições (limpa a cauda). Usado nas transições suaves. */
+    void snap (const Settings& settings);
+
 private:
     static constexpr int numLines = 8;
     static constexpr int numDiffusers = 4;
@@ -118,4 +121,10 @@ private:
 
     int lastType = -1;
     float lastSize = -1.0f;
+
+    // Transição sem "pitch": em mudanças grandes (tipo de sala ou tamanho), o reverb
+    // desvanece, muda em silêncio e volta — em vez de esticar as linhas (o que desafina).
+    int   changeFadeState = 0;   // 0 parado, 1 a desvanecer, 2 a voltar
+    float changeFade = 1.0f;
+    float changeFadeStep = 0.001f;
 };

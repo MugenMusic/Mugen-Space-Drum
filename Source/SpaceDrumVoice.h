@@ -144,4 +144,11 @@ private:
     float gainLeft = 0.7f, gainRight = 0.7f;
 
     bool isActive = false;
+
+    // Anti-clique: quando uma voz é reutilizada (ou cortada pelo DAW), em vez de
+    // um salto brusco, o som antigo desaparece em poucos milissegundos.
+    float lastOutLeft = 0.0f, lastOutRight = 0.0f;
+    float declickLeft = 0.0f, declickRight = 0.0f, declickCoef = 0.99f;
+    bool  quickFade = false;
+    float quickFadeGain = 1.0f, quickFadeCoef = 0.99f;
 };

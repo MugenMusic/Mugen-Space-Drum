@@ -80,7 +80,9 @@ void drawLogo3D (juce::Graphics& g, juce::Rectangle<float> area, const juce::Str
                  const Palette& palette, float time)
 {
     // Letras como forma (para as podermos esculpir)
-    const juce::Font font (juce::FontOptions (area.getHeight() * 0.8f, juce::Font::bold).withKerningFactor (0.42f));
+    // Palavras longas (ex. SINGULARITY) usam um espaçamento mais justo para manter as letras grandes
+    const float kerning = text.length() > 7 ? 0.20f : 0.42f;
+    const juce::Font font (juce::FontOptions (area.getHeight() * 0.8f, juce::Font::bold).withKerningFactor (kerning));
     juce::GlyphArrangement glyphs;
     glyphs.addLineOfText (font, text, 0.0f, 0.0f);
     juce::Path letters;

@@ -33,6 +33,22 @@ void SpaceDrumVoice::startNote (int midiNoteNumber, float velocity,
     if (sampleRate <= 0.0)
         return;
 
+    // Se esta voz ainda estava a soar (foi "roubada" para uma nota nova), o último
+    // valor de saída desvanece em ~3 ms: a passagem fica contínua, sem clique.
+    declickCoef = (float) std::exp (-1.0 / (0.003 * sampleRate));
+    quickFadeCoef = (float) std::exp (-1.0 / (0.004 * sampleRate));
+    if (isActive)
+    {
+        declickLeft  = lastOutLeft;
+        declickRight = lastOutRight;
+    }
+    else
+    {
+        declickLeft = declickRight = 0.0f;
+    }
+    quickFade = false;
+    quickFadeGain = 1.0f;
+
     const double character      = parameters.character->load();
     const double brightnessKnob = parameters.brightness->load();
     const double decayKnob      = parameters.decay->load();
@@ -189,7 +205,9 @@ void SpaceDrumVoice::stopNote (float, bool allowTailOff)
     // a tecla. Só paramos de imediato quando o anfitrião o exige.
     if (! allowTailOff)
     {
-        isActive = false;
+        // Paragem imediata pedida pelo DAW: liberta a voz já, mas desvanece em ~20 ms.
+        quickFade = true;
+        quickFadeGain = 1.0f;
         clearCurrentNote();
     }
 }
@@ -245,15 +263,33 @@ void SpaceDrumVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer,
             sample += readSample() * sampleMix;
 
         toneFilterState += (sample - toneFilterState) * toneFilterCoef;
-        const float out = (float) (toneFilterState * outputGain);
+        float out = (float) (toneFilterState * outputGain);
 
-        left[startSample + i] += out * gainLeft;
+        if (quickFade)
+            out *= (quickFadeGain *= quickFadeCoef);
+
+        const float outLeft  = out * gainLeft  + declickLeft;
+        const float outRight = out * gainRight + declickRight;
+        declickLeft  *= declickCoef;
+        declickRight *= declickCoef;
+        lastOutLeft  = outLeft;
+        lastOutRight = outRight;
+
+        left[startSample + i] += outLeft;
         if (right != nullptr)
-            right[startSample + i] += out * gainRight;
+            right[startSample + i] += outRight;
     }
 
     // Manutenção dos osciladores e verificação de silêncio.
     bool stillSounding = malletLevel > silenceThreshold || currentSample != nullptr;
+
+    if (quickFade && quickFadeGain < 0.0005f)
+    {
+        quickFade = false;
+        isActive = false;
+        lastOutLeft = lastOutRight = 0.0f;
+        return;   // a voz já foi libertada em stopNote
+    }
 
     for (auto& m : modes)
     {

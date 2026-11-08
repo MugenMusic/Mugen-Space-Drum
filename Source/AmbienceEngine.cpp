@@ -11,6 +11,10 @@ void AmbienceEngine::prepare (double sampleRate)
     delayRight.assign (size, 0.0f);
 
     delaySamples.reset (sampleRate, 0.25);
+    timeFadeStep = 1.0f / (float) (0.04 * sampleRate);
+    timeFadeState = 0;
+    timeFade = 1.0f;
+    hasTime = false;
     delayMixSmoothed.reset (sampleRate, 0.05);
 
     // Os ecos perdem agudos a cada repetição (som mais quente e sonhador).
@@ -52,15 +56,48 @@ void AmbienceEngine::processDelay (float* left, float* right, int numSamples, co
     const int size = (int) delayLeft.size();
     const float maxDelay = (float) (size - 4);
 
-    delaySamples.setTargetValue (juce::jlimit (1.0f, maxDelay,
-                                               settings.delayTimeMs * 0.001f * (float) currentSampleRate));
+    const float target = juce::jlimit (1.0f, maxDelay, settings.delayTimeMs * 0.001f * (float) currentSampleRate);
+
+    if (! hasTime)
+    {
+        delaySamples.setCurrentAndTargetValue (target);
+        hasTime = true;
+    }
+    else if (timeFadeState != 1)
+    {
+        const float current = delaySamples.getTargetValue();
+        if (std::abs (target - current) > 0.05f * current)
+            timeFadeState = 1;                    // salto grande: faz a transição sem desafinar
+        else if (timeFadeState == 0)
+            delaySamples.setTargetValue (target); // pequenos ajustes no knob: desliza suavemente
+    }
     delayMixSmoothed.setTargetValue (settings.delayMix);
     const float feedback = juce::jlimit (0.0f, 0.9f, settings.delayFeedback);
 
     for (int i = 0; i < numSamples; ++i)
     {
+        if (timeFadeState == 1)
+        {
+            timeFade -= timeFadeStep;
+            if (timeFade <= 0.0f)
+            {
+                timeFade = 0.0f;
+                delaySamples.setCurrentAndTargetValue (target);
+                timeFadeState = 2;
+            }
+        }
+        else if (timeFadeState == 2)
+        {
+            timeFade += timeFadeStep * 0.5f;
+            if (timeFade >= 1.0f)
+            {
+                timeFade = 1.0f;
+                timeFadeState = 0;
+            }
+        }
+
         const float d = delaySamples.getNextValue();
-        const float mix = delayMixSmoothed.getNextValue();
+        const float mix = delayMixSmoothed.getNextValue() * timeFade;
 
         const float echoLeft  = readDelay (delayLeft, d);
         const float echoRight = readDelay (delayRight, d);
